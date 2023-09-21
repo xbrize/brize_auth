@@ -25,7 +25,7 @@ impl User {
     }
 }
 
-pub async fn create_user_table(database: Surreal<Client>) -> surrealdb::Result<()> {
+pub async fn init_user_table(database: &Surreal<Client>) -> surrealdb::Result<()> {
     let sql = "
         DEFINE TABLE user SCHEMAFULL;
         DEFINE FIELD username ON TABLE user TYPE string;
@@ -39,7 +39,17 @@ pub async fn create_user_table(database: Surreal<Client>) -> surrealdb::Result<(
     Ok(())
 }
 
-pub async fn create_user(database: Surreal<Client>, user: User) -> surrealdb::Result<()> {
+pub async fn drop_user_table(database: Surreal<Client>) -> surrealdb::Result<()> {
+    let sql = "
+        DROP TABLE user;
+    ";
+
+    database.query(sql).await?;
+
+    Ok(())
+}
+
+pub async fn create_user(database: &Surreal<Client>, user: &User) -> surrealdb::Result<()> {
     let sql = "
     CREATE user CONTENT {
         id: $id,
@@ -52,16 +62,16 @@ pub async fn create_user(database: Surreal<Client>, user: User) -> surrealdb::Re
 
     database
         .query(sql)
-        .bind(("id", user.id))
-        .bind(("username", user.username))
-        .bind(("password", user.password))
-        .bind(("email", user.email))
+        .bind(("id", &user.id))
+        .bind(("username", &user.username))
+        .bind(("password", &user.password))
+        .bind(("email", &user.email))
         .await?;
 
     Ok(())
 }
 
-pub async fn read_user(database: Surreal<Client>, username: &str) -> Option<User> {
+pub async fn get_user(database: &Surreal<Client>, username: &str) -> Option<User> {
     let user: Option<User> = match database.select(("user", username)).await {
         Ok(user) => user,
         Err(e) => {
@@ -70,4 +80,20 @@ pub async fn read_user(database: Surreal<Client>, username: &str) -> Option<User
         }
     };
     user
+}
+
+pub async fn register_user(database: &Surreal<Client>, user: User) -> surrealdb::Result<()> {
+    let does_user_exist = get_user(database, &user.username).await;
+    match does_user_exist {
+        Some(found_user) => {
+            println!("User {} Already Exists", found_user.username);
+            return Ok(());
+        }
+        None => {
+            create_user(database, &user).await?;
+            println!("User {} Has Been Created", user.username);
+        }
+    };
+
+    Ok(())
 }
