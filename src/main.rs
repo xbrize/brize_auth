@@ -10,8 +10,8 @@ async fn main() -> surrealdb::Result<()> {
     // let new_user = user::User::new("myusrname", "mypassword", "myemail");
     // user::init_user_table(&db).await?;
     // user::register_user(&db, new_user).await?;
-    let login_status = user::login_user(&db, "myusrname", "mypassword").await;
-    dbg!(login_status);
+    // let login_status = user::login_user(&db, "myusrname", "mypassword").await;
+    // dbg!(login_status);
 
     Ok(())
 }

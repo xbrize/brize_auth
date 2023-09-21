@@ -5,15 +5,15 @@ An authentication solution for SurrealDB.
 ## Roadmap
 
 - [ ] Database
-  - [ ] Authentication and Authorization
-    - [ ] User Schema
-    - [ ] Roles Schema
-    - [ ] User Registration
-    - [ ] User Authentication
+  - [ ] Authentication
+    - [x] User Schema
+    - [x] User Registration
+    - [x] Login
     - [ ] Session Management
-    - [ ] Authorization
-    - [ ] Login/Logout
-  - [ ] Recipes Schema
+    - [ ] Logout
+    - [ ] Delete User
+  - Authorization
+    - [ ] Roles Schema
 
 ## Setup
 

@@ -13,10 +13,15 @@ pub struct User {
     created_at: String,
 }
 
+pub enum RegisterStatus {
+    Accepted(User),
+    Denied,
+}
+
 impl User {
     pub fn new(username: &str, password: &str, email: &str) -> Self {
         Self {
-            id: Thing::from(("user", username)),
+            id: Thing::from(("user", email)),
             username: username.to_string(),
             password: password.to_string(),
             email: email.to_string(),
@@ -71,39 +76,40 @@ pub async fn create_user(database: &Surreal<Client>, user: &User) -> surrealdb::
     Ok(())
 }
 
-pub async fn get_user(database: &Surreal<Client>, username: &str) -> Option<User> {
-    let user: Option<User> = match database.select(("user", username)).await {
+pub async fn get_user(database: &Surreal<Client>, email: &str) -> Option<User> {
+    match database.select(("user", email)).await {
         Ok(user) => user,
         Err(e) => {
-            println!("read_user:{}", e);
+            println!("Error while getting user:\n{}", e);
             None
         }
-    };
-    user
+    }
 }
 
-pub async fn register_user(database: &Surreal<Client>, user: User) -> surrealdb::Result<()> {
-    let does_user_exist = get_user(database, &user.username).await;
+pub async fn register_user(database: &Surreal<Client>, user: User) -> bool {
+    let does_user_exist = get_user(database, &user.email).await;
     match does_user_exist {
         Some(found_user) => {
-            println!("User {} Already Exists", found_user.username);
-            return Ok(());
+            println!("User {} Already Exists", found_user.email);
+            return false;
         }
         None => {
-            create_user(database, &user).await?;
-            println!("User {} Has Been Created", user.username);
+            match create_user(database, &user).await {
+                Ok(_) => {
+                    println!("User {} Has Been Created", user.email);
+                    return true;
+                }
+                Err(e) => {
+                    println!("Failed to create new user:\n {}", e);
+                    return false;
+                }
+            };
         }
     };
-
-    Ok(())
 }
 
-pub async fn login_user(
-    database: &Surreal<Client>,
-    username: &str,
-    password: &str,
-) -> Option<User> {
-    let lookup_user = get_user(&database, username).await;
+pub async fn login_user(database: &Surreal<Client>, email: &str, password: &str) -> Option<User> {
+    let lookup_user = get_user(&database, email).await;
 
     match lookup_user {
         Some(user) => {
@@ -119,5 +125,22 @@ pub async fn login_user(
             println!("Username Not Found");
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use surrealdb::{engine::remote::ws::Ws, Surreal};
+
+    #[tokio::test]
+    pub async fn test_user_registration() {
+        let db = Surreal::new::<Ws>("127.0.0.1:8000").await.unwrap();
+        db.use_ns("test").use_db("test").await.unwrap();
+        init_user_table(&db).await.unwrap();
+
+        let new_user = User::new("myusrname", "mypassword", "myemail@email.com");
+        let register_status = register_user(&db, new_user).await;
+        assert_eq!(register_status, true);
     }
 }
