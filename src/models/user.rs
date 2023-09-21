@@ -133,14 +133,55 @@ mod tests {
     use super::*;
     use surrealdb::{engine::remote::ws::Ws, Surreal};
 
-    #[tokio::test]
-    pub async fn test_user_registration() {
+    async fn setup_db() -> Surreal<Client> {
         let db = Surreal::new::<Ws>("127.0.0.1:8000").await.unwrap();
         db.use_ns("test").use_db("test").await.unwrap();
-        init_user_table(&db).await.unwrap();
+        db
+    }
 
-        let new_user = User::new("myusrname", "mypassword", "myemail@email.com");
+    #[tokio::test]
+    async fn setup_table() {
+        let db = setup_db().await;
+        init_user_table(&db).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_create_and_get_user() {
+        let un = "myusrname";
+        let pass = "mypassword";
+        let email = "myemail@mail.com";
+        let db = setup_db().await;
+
+        let new_user = User::new(un, pass, email);
+        create_user(&db, &new_user).await.unwrap();
+
+        let user = get_user(&db, email).await.unwrap();
+        assert_eq!(user.email, new_user.email);
+    }
+
+    #[tokio::test]
+    async fn test_user_registration() {
+        let un = "newusername";
+        let pass = "mypasswordnew";
+        let email = "mynewemail@mail.com";
+        let db = setup_db().await;
+
+        // Initial Registration should pass
+        let new_user = User::new(un, pass, email);
         let register_status = register_user(&db, new_user).await;
         assert_eq!(register_status, true);
+
+        // Next Registration should fail
+        let new_user = User::new(un, pass, email);
+        let register_status = register_user(&db, new_user).await;
+        assert_eq!(register_status, false);
     }
+
+    // #[tokio::test]
+    // async fn test_user_login() {
+    //     let db = Surreal::new::<Ws>("127.0.0.1:8000").await.unwrap();
+    //     db.use_ns("test").use_db("test").await.unwrap();
+
+    //     let login_status =
+    // }
 }
