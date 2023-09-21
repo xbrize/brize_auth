@@ -97,3 +97,27 @@ pub async fn register_user(database: &Surreal<Client>, user: User) -> surrealdb:
 
     Ok(())
 }
+
+pub async fn login_user(
+    database: &Surreal<Client>,
+    username: &str,
+    password: &str,
+) -> Option<User> {
+    let lookup_user = get_user(&database, username).await;
+
+    match lookup_user {
+        Some(user) => {
+            if user.password == password {
+                println!("Login Successful");
+                return Some(user);
+            } else {
+                println!("Password Did Not Match");
+                return None;
+            }
+        }
+        None => {
+            println!("Username Not Found");
+            None
+        }
+    }
+}
