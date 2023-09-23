@@ -6,7 +6,7 @@ use surrealdb::Surreal;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
-    id: Thing,
+    pub id: Thing,
     username: String,
     password: String,
     email: String,
