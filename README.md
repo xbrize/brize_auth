@@ -23,6 +23,14 @@ Start Development Database, Non-Persist, No-Auth
 docker run --rm --pull always -p 8000:8000 surrealdb/surrealdb:latest start
 ```
 
+## Test
+
+Run test scripts
+
+```bash
+scripts/tests/test.<test-name>.sh
+```
+
 ## Flow
 
 ### Step 1: Designing the Database Schema

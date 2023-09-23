@@ -13,11 +13,6 @@ pub struct User {
     created_at: String,
 }
 
-pub enum RegisterStatus {
-    Accepted(User),
-    Denied,
-}
-
 impl User {
     pub fn new(username: &str, password: &str, email: &str) -> Self {
         Self {
@@ -87,10 +82,10 @@ pub async fn get_user(database: &Surreal<Client>, email: &str) -> Option<User> {
 }
 
 pub async fn register_user(database: &Surreal<Client>, user: &User) -> bool {
-    let does_user_exist = get_user(database, &user.email).await;
-    match does_user_exist {
-        Some(found_user) => {
-            println!("User {} Already Exists", found_user.email);
+    let lookup_user = get_user(database, &user.email).await;
+    match lookup_user {
+        Some(user) => {
+            println!("User {} Already Exists", user.email);
             return false;
         }
         None => {
