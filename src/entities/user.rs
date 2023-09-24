@@ -6,7 +6,6 @@ pub struct User {
     username: String,
     password: String,
     email: String,
-    created_at: String,
 }
 
 impl User {
@@ -15,7 +14,6 @@ impl User {
             username: username.to_string(),
             password: password.to_string(),
             email: email.to_string(),
-            created_at: String::from(""),
         }
     }
 
@@ -28,10 +26,6 @@ impl User {
 
     pub fn get_email(&self) -> String {
         self.email.to_string()
-    }
-
-    pub fn get_created_at(&self) -> String {
-        self.created_at.to_string()
     }
 }
 

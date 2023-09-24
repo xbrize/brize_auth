@@ -1,15 +1,9 @@
 pub mod user_repository;
 
-use serde::{Deserialize, Serialize};
 use surrealdb::engine::remote::ws::{Client, Ws};
-use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Record<T> {
-    pub id: Thing,
-    pub data: T,
-}
+pub use surrealdb::opt::RecordId;
 pub type DatabaseClient = Surreal<Client>;
 
 pub async fn initialize_test_database() -> DatabaseClient {
