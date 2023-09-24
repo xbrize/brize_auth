@@ -1,3 +1,4 @@
+pub mod session_repository;
 pub mod user_repository;
 
 use surrealdb::engine::remote::ws::{Client, Ws};
