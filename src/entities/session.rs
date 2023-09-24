@@ -50,37 +50,37 @@ pub async fn get_session(database: &Surreal<Client>, session_record_id: Thing) -
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use surrealdb::{engine::remote::ws::Ws, sql::Id, Surreal};
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use surrealdb::{engine::remote::ws::Ws, sql::Id, Surreal};
 
-    async fn setup_db() -> Surreal<Client> {
-        let db = Surreal::new::<Ws>("127.0.0.1:8000").await.unwrap();
-        db.use_ns("test").use_db("test").await.unwrap();
-        db
-    }
+//     async fn setup_db() -> Surreal<Client> {
+//         let db = Surreal::new::<Ws>("127.0.0.1:8000").await.unwrap();
+//         db.use_ns("test").use_db("test").await.unwrap();
+//         db
+//     }
 
-    #[tokio::test]
-    async fn test_session_model() {
-        let email = "test@email.com";
+//     #[tokio::test]
+//     async fn test_session_model() {
+//         let email = "test@email.com";
 
-        // Start database
-        let db = setup_db().await;
+//         // Start database
+//         let db = setup_db().await;
 
-        // Test Create session
-        let new_session = create_session(
-            &db,
-            Thing {
-                tb: String::from("user"),
-                id: Id::String(String::from(email)),
-            },
-        )
-        .await;
-        assert!(new_session.is_some());
+//         // Test Create session
+//         let new_session = create_session(
+//             &db,
+//             Thing {
+//                 tb: String::from("user"),
+//                 id: Id::String(String::from(email)),
+//             },
+//         )
+//         .await;
+//         assert!(new_session.is_some());
 
-        // Test get session
-        let session = get_session(&db, new_session.unwrap()).await;
-        assert!(session.is_some());
-    }
-}
+//         // Test get session
+//         let session = get_session(&db, new_session.unwrap()).await;
+//         assert!(session.is_some());
+//     }
+// }

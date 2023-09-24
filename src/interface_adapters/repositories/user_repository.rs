@@ -1,4 +1,4 @@
-use super::DatabaseClient;
+use super::{DatabaseClient, Record};
 use crate::entities::User;
 
 pub struct UserRepository {
@@ -14,7 +14,7 @@ impl UserRepository {
         match self.database.select(("user", email)).await {
             Ok(user) => user,
             Err(e) => {
-                println!("Error while getting user:\n{}", e);
+                println!("Error while finding user by email:\n{}", e);
                 None
             }
         }
@@ -55,14 +55,32 @@ impl UserRepository {
 
         Ok(())
     }
+}
 
-    pub async fn drop_user_table(&self) -> surrealdb::Result<()> {
-        let sql = "
-            DROP TABLE user;
-        ";
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::interface_adapters::initialize_test_database;
 
-        self.database.query(sql).await?;
+    #[tokio::test]
+    async fn test_user_repository() {
+        let username = "test-user-name";
+        let password = "test-pass-word";
+        let email = "test@email.com";
 
-        Ok(())
+        // Start database
+        let db = initialize_test_database().await;
+        let user_repo = UserRepository::new(db);
+
+        // Init user table
+        user_repo.init_user_table().await.unwrap();
+
+        // Create new user
+        let new_user = User::new(username, password, email);
+        user_repo.create_user(&new_user).await.unwrap();
+
+        // Test getting user
+        let user_record = user_repo.find_user_by_email(email).await.unwrap();
+        assert_eq!(user_record.get_email(), new_user.get_email());
     }
 }
