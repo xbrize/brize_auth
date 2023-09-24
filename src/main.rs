@@ -1,4 +1,4 @@
-use surreal_auth::models::session::create_session;
+use surreal_auth::models::session::{create_session, get_session};
 use surreal_auth::models::{get_user, user};
 use surrealdb::engine::remote::ws::Ws;
 use surrealdb::Surreal;
@@ -16,8 +16,9 @@ async fn main() -> surrealdb::Result<()> {
     // dbg!(login_status);
 
     let user = get_user(&db, "cassie@email.com").await;
-    dbg!();
-    create_session(db, user.unwrap().id).await?;
+    let new_session = create_session(&db, user.unwrap().id).await;
+    let sesh = get_session(&db, new_session.unwrap()).await;
+    dbg!(sesh);
 
     Ok(())
 }
