@@ -1,13 +1,19 @@
 use super::DataStore;
-use crate::application::{SessionRecord, SessionRepository};
+use crate::{
+    application::{SessionRecord, SessionRepository},
+    domain::RepositoryError,
+};
 use async_trait::async_trait;
 use surrealdb::opt::RecordId;
 
 #[async_trait]
 impl SessionRepository for DataStore {
-    async fn create_session(&self, user_record_link: RecordId) -> Option<RecordId> {
+    async fn create_session(
+        &self,
+        user_record_link: RecordId,
+    ) -> Result<RecordId, RepositoryError> {
         let sql = "
-        RETURN (CREATE session:uuid() CONTENT {
+        CREATE session:uuid() CONTENT {
             user_record_link: $user,
             session: {
                 created_at: time::now(),
@@ -15,35 +21,58 @@ impl SessionRepository for DataStore {
                 expires_at: time::now() + 2w,
                 is_expired: <future> {expires_at < updated_at}
             },
-        }).id
+        }
         ";
 
-        match self
+        let query_result = self
             .database
             .query(sql)
             .bind(("user", user_record_link))
-            .await
-        {
-            Ok(mut response) => match response.take(0) {
-                Ok(session_id) => session_id,
-                Err(e) => {
-                    println!("No session data in response:\n{}", e);
-                    None
+            .await;
+
+        match query_result {
+            Ok(mut response) => {
+                let session_record: Option<SessionRecord> = match response.take(0) {
+                    Ok(session_record) => session_record,
+                    Err(error) => {
+                        println!("{error}");
+                        return Err(RepositoryError::NotFound);
+                    }
+                };
+
+                if let Some(record) = session_record {
+                    return Ok(record.id);
+                } else {
+                    return Err(RepositoryError::NotFound);
                 }
-            },
-            Err(e) => {
-                println!("Failed to create session:\n{}", e);
-                None
+            }
+            Err(surreal_error) => {
+                println!("{surreal_error}");
+                Err(RepositoryError::QueryFail)
             }
         }
     }
 
-    async fn get_session(&self, session_record_id: RecordId) -> Option<SessionRecord> {
+    async fn get_session(
+        &self,
+        session_record_id: RecordId,
+    ) -> Result<SessionRecord, RepositoryError> {
         match self.database.select(session_record_id).await {
-            Ok(session) => session,
-            Err(e) => {
-                println!("Error getting session:\n{}", e);
-                None
+            Ok(session) => {
+                let session: Option<SessionRecord> = match session {
+                    Some(session) => session,
+                    None => return Err(RepositoryError::NotFound),
+                };
+
+                if let Some(record) = session {
+                    return Ok(record);
+                } else {
+                    return Err(RepositoryError::NotFound);
+                }
+            }
+            Err(surreal_error) => {
+                println!("Error while finding user by email:\n{}", surreal_error);
+                return Err(RepositoryError::QueryFail);
             }
         }
     }
@@ -62,10 +91,10 @@ mod tests {
         let new_session_id = session_repo
             .create_session(RecordId::from(("user", email)))
             .await;
-        assert!(new_session_id.is_some());
+        assert!(new_session_id.is_ok());
 
         // Test get session
         let session = session_repo.get_session(new_session_id.unwrap()).await;
-        assert!(session.is_some());
+        assert!(session.is_ok());
     }
 }

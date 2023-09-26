@@ -1,27 +1,30 @@
 use surrealdb::opt::RecordId;
 
 use super::DataStore;
-use crate::application::{UserRecord, UserRepoError, UserRepository};
+use crate::{
+    application::{UserRecord, UserRepository},
+    domain::RepositoryError,
+};
 
 #[async_trait::async_trait]
 impl UserRepository for DataStore {
-    async fn find_user_by_email(&self, email: &str) -> Result<UserRecord, UserRepoError> {
+    async fn find_user_by_email(&self, email: &str) -> Result<UserRecord, RepositoryError> {
         match self.database.select(("user", email)).await {
             Ok(user_record) => {
                 let user_record: Option<UserRecord> = match user_record {
                     Some(user_record) => user_record,
-                    None => return Err(UserRepoError::NoUserRecord),
+                    None => return Err(RepositoryError::NotFound),
                 };
 
                 if let Some(record) = user_record {
                     return Ok(record);
                 } else {
-                    return Err(UserRepoError::NoUserRecord);
+                    return Err(RepositoryError::NotFound);
                 }
             }
             Err(surreal_error) => {
                 println!("Error while finding user by email:\n{}", surreal_error);
-                return Err(UserRepoError::QueryFail);
+                return Err(RepositoryError::QueryFail);
             }
         }
     }
@@ -31,7 +34,7 @@ impl UserRepository for DataStore {
         username: &str,
         password: &str,
         email: &str,
-    ) -> Result<RecordId, UserRepoError> {
+    ) -> Result<RecordId, RepositoryError> {
         let sql = "
         CREATE user CONTENT {
             id: $id,
@@ -59,19 +62,19 @@ impl UserRepository for DataStore {
                     Ok(user_record) => user_record,
                     Err(error) => {
                         println!("{error}");
-                        return Err(UserRepoError::NoUserRecord);
+                        return Err(RepositoryError::NotFound);
                     }
                 };
 
                 if let Some(record) = user_record {
                     return Ok(record.id);
                 } else {
-                    return Err(UserRepoError::NoUserRecord);
+                    return Err(RepositoryError::NotFound);
                 }
             }
             Err(surreal_error) => {
                 println!("{surreal_error}");
-                Err(UserRepoError::QueryFail)
+                Err(RepositoryError::QueryFail)
             }
         }
     }

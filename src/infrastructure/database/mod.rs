@@ -12,11 +12,11 @@ pub struct DataStore {
 
 impl DataStore {
     pub async fn new(addr: &str, namespace: &str, database_name: &str) -> Self {
-        let db = Surreal::new::<Ws>("127.0.0.1:8000")
+        let db = Surreal::new::<Ws>(addr)
             .await
             .expect("Could not connect to database:");
-        db.use_ns("test")
-            .use_db("test")
+        db.use_ns(namespace)
+            .use_db(database_name)
             .await
             .expect("Could not connect to database:");
 

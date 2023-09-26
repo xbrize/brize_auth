@@ -1,13 +1,7 @@
-use crate::domain::User;
+use crate::domain::{RepositoryError, User};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use surrealdb::opt::RecordId;
-
-#[derive(Debug)]
-pub enum UserRepoError {
-    QueryFail,
-    NoUserRecord,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserRecord {
@@ -18,12 +12,12 @@ pub struct UserRecord {
 
 #[async_trait]
 pub trait UserRepository {
-    async fn find_user_by_email(&self, user_email: &str) -> Result<UserRecord, UserRepoError>;
+    async fn find_user_by_email(&self, user_email: &str) -> Result<UserRecord, RepositoryError>;
 
     async fn create_user(
         &self,
         username: &str,
         password: &str,
         email: &str,
-    ) -> Result<RecordId, UserRepoError>;
+    ) -> Result<RecordId, RepositoryError>;
 }
