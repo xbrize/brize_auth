@@ -24,7 +24,7 @@ impl<'a> SessionRepository<'a> {
                 created_at: time::now(),
                 updated_at: <future> {time::now()},
                 expires_at: time::now() + 2w,
-                is_expired: <future> {expires_at < time::now()}
+                is_expired: <future> {expires_at < updated_at}
             },
         }).id
         ";
