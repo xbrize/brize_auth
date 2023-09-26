@@ -1,5 +1,7 @@
-pub mod session_store;
-pub mod user_store;
+mod session_gateway;
+pub use session_gateway::*;
+mod user_gateway;
+pub use user_gateway::*;
 
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::Surreal;
@@ -7,7 +9,7 @@ use surrealdb::Surreal;
 pub type DatabaseClient = Surreal<Client>;
 
 pub struct DataStore {
-    database: DatabaseClient,
+    pub database: DatabaseClient,
 }
 
 impl DataStore {

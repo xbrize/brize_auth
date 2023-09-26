@@ -1,4 +1,4 @@
-use super::DataStore;
+use crate::infrastructure::DataStore;
 use crate::{
     application::{SessionRecord, SessionRepository},
     domain::RepositoryError,

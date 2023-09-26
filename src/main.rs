@@ -1,7 +1,7 @@
 use surreal_auth::{
     application::{login_user, register_user, start_session},
     domain::User,
-    infrastructure::database::DataStore,
+    infrastructure::DataStore,
 };
 
 #[tokio::main]

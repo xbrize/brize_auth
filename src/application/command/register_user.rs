@@ -32,8 +32,9 @@ pub async fn register_user<T: UserRepository>(repository: &T, new_user: &User) -
 
 #[cfg(test)]
 mod tests {
+    use crate::infrastructure::DataStore;
+
     use super::*;
-    use crate::infrastructure::database::DataStore;
 
     #[tokio::test]
     async fn test_register_use_case() {

@@ -1,6 +1,6 @@
 use surrealdb::opt::RecordId;
 
-use super::DataStore;
+use crate::infrastructure::DataStore;
 use crate::{
     application::{UserRecord, UserRepository},
     domain::RepositoryError,

@@ -27,7 +27,7 @@ pub async fn login_user<T: UserRepository>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{application::register_user, domain::User, infrastructure::database::DataStore};
+    use crate::{application::register_user, domain::User, infrastructure::DataStore};
 
     #[tokio::test]
     async fn test_register_use_case() {
