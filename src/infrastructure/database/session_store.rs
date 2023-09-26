@@ -1,24 +1,11 @@
-use super::DatabaseClient;
-use crate::domain::session::Session;
-use serde::{Deserialize, Serialize};
+use super::DataStore;
+use crate::application::{SessionRecord, SessionRepository};
+use async_trait::async_trait;
 use surrealdb::opt::RecordId;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SessionRecord {
-    id: RecordId,
-    user_record_link: RecordId,
-    session: Session,
-}
-
-pub struct SessionRepository<'a> {
-    database: &'a DatabaseClient,
-}
-
-impl<'a> SessionRepository<'a> {
-    pub fn new(database: &'a DatabaseClient) -> Self {
-        Self { database }
-    }
-    pub async fn create_session(&self, user_record_link: RecordId) -> Option<RecordId> {
+#[async_trait]
+impl SessionRepository for DataStore<'_> {
+    async fn create_session(&self, user_record_link: RecordId) -> Option<RecordId> {
         let sql = "
         RETURN (CREATE session:uuid() CONTENT {
             user_record_link: $user,
@@ -51,7 +38,7 @@ impl<'a> SessionRepository<'a> {
         }
     }
 
-    pub async fn get_session(&self, session_record_id: RecordId) -> Option<SessionRecord> {
+    async fn get_session(&self, session_record_id: RecordId) -> Option<SessionRecord> {
         match self.database.select(session_record_id).await {
             Ok(session) => session,
             Err(e) => {
@@ -70,7 +57,7 @@ mod tests {
     #[tokio::test]
     async fn test_session_model() {
         let db = initialize_test_database().await;
-        let session_repo = SessionRepository::new(&db);
+        let session_repo = DataStore::new(&db);
 
         let email = "test@email.com";
 
