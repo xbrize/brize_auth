@@ -1,6 +1,6 @@
-use crate::{entities::User, interface_adapters::user_repository::UserRepository};
+use crate::{domain::User, infrastructure::user_repository::UserRepository};
 
-pub async fn register_user(repository: &UserRepository, new_user: &User) -> bool {
+pub async fn register_user(repository: &UserRepository<'_>, new_user: &User) -> bool {
     match repository.find_user_by_email(&new_user.get_email()).await {
         Some(user_record) => {
             println!("User {} Already Exists", user_record.user.get_email());
@@ -24,13 +24,13 @@ pub async fn register_user(repository: &UserRepository, new_user: &User) -> bool
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interface_adapters::initialize_test_database;
+    use crate::infrastructure::initialize_test_database;
 
     #[tokio::test]
     async fn test_register_use_case() {
         // Start database
         let db = initialize_test_database().await;
-        let user_repo = UserRepository::new(db);
+        let user_repo = UserRepository::new(&db);
 
         // Test registering new user
         let username = "test-user-name-two";

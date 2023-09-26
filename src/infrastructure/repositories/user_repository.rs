@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{DatabaseClient, RecordId};
-use crate::entities::User;
+use crate::domain::User;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserRecord {
@@ -10,12 +10,12 @@ pub struct UserRecord {
     pub created_at: String,
 }
 
-pub struct UserRepository {
-    database: DatabaseClient,
+pub struct UserRepository<'a> {
+    database: &'a DatabaseClient,
 }
 
-impl UserRepository {
-    pub fn new(database: DatabaseClient) -> Self {
+impl<'a> UserRepository<'a> {
+    pub fn new(database: &'a DatabaseClient) -> Self {
         Self { database }
     }
 
@@ -57,7 +57,7 @@ impl UserRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interface_adapters::initialize_test_database;
+    use crate::infrastructure::initialize_test_database;
 
     #[tokio::test]
     async fn test_user_repository() {
@@ -67,7 +67,7 @@ mod tests {
 
         // Start database
         let db = initialize_test_database().await;
-        let user_repo = UserRepository::new(db);
+        let user_repo = UserRepository::new(&db);
 
         // Create new user
         let new_user = User::new(username, password, email);

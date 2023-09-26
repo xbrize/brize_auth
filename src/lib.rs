@@ -1,3 +1,3 @@
-pub mod entities;
-pub mod interface_adapters;
-pub mod use_cases;
+pub mod application;
+pub mod domain;
+pub mod infrastructure;

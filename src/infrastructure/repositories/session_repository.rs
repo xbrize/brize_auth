@@ -1,5 +1,5 @@
 use super::{DatabaseClient, RecordId};
-use crate::entities::session::Session;
+use crate::domain::session::Session;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -8,12 +8,12 @@ pub struct SessionRecord {
     user_record_link: RecordId,
     session: Session,
 }
-pub struct SessionRepository {
-    database: DatabaseClient,
+pub struct SessionRepository<'a> {
+    database: &'a DatabaseClient,
 }
 
-impl SessionRepository {
-    pub fn new(database: DatabaseClient) -> Self {
+impl<'a> SessionRepository<'a> {
+    pub fn new(database: &'a DatabaseClient) -> Self {
         Self { database }
     }
     pub async fn create_session(&self, user_record_link: RecordId) -> Option<RecordId> {
@@ -63,12 +63,12 @@ impl SessionRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interface_adapters::initialize_test_database;
+    use crate::infrastructure::initialize_test_database;
 
     #[tokio::test]
     async fn test_session_model() {
         let db = initialize_test_database().await;
-        let session_repo = SessionRepository::new(db);
+        let session_repo = SessionRepository::new(&db);
 
         let email = "test@email.com";
 
