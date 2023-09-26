@@ -1,13 +1,12 @@
 use surreal_auth::{
     application::{login_user, register_user, start_session},
     domain::User,
-    infrastructure::{database::DataStore, initialize_test_database},
+    infrastructure::database::DataStore,
 };
 
 #[tokio::main]
 async fn main() -> surrealdb::Result<()> {
-    let database = initialize_test_database().await;
-    let repo = DataStore::new(&database);
+    let repo = DataStore::new("127.0.0.1:8000", "test", "test").await;
 
     let username = "test_name";
     let password = "test_password";

@@ -33,13 +33,12 @@ pub async fn register_user<T: UserRepository>(repository: &T, new_user: &User) -
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::{database::DataStore, initialize_test_database};
+    use crate::infrastructure::database::DataStore;
 
     #[tokio::test]
     async fn test_register_use_case() {
         // Start database
-        let db = initialize_test_database().await;
-        let user_repo = DataStore::new(&db);
+        let user_repo = DataStore::new("127.0.0.1:8000", "test", "test").await;
 
         // Test registering new user
         let username = "test-user-name-two";

@@ -6,24 +6,20 @@ use surrealdb::Surreal;
 
 pub type DatabaseClient = Surreal<Client>;
 
-pub async fn initialize_test_database() -> DatabaseClient {
-    let db = Surreal::new::<Ws>("127.0.0.1:8000")
-        .await
-        .expect("Could not connect to database:");
-    db.use_ns("test")
-        .use_db("test")
-        .await
-        .expect("Could not connect to database:");
-
-    db
+pub struct DataStore {
+    database: DatabaseClient,
 }
 
-pub struct DataStore<'a> {
-    database: &'a DatabaseClient,
-}
+impl DataStore {
+    pub async fn new(addr: &str, namespace: &str, database_name: &str) -> Self {
+        let db = Surreal::new::<Ws>("127.0.0.1:8000")
+            .await
+            .expect("Could not connect to database:");
+        db.use_ns("test")
+            .use_db("test")
+            .await
+            .expect("Could not connect to database:");
 
-impl<'a> DataStore<'a> {
-    pub fn new(database: &'a DatabaseClient) -> Self {
-        Self { database }
+        Self { database: db }
     }
 }

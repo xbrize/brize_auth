@@ -4,7 +4,7 @@ use super::DataStore;
 use crate::application::{UserRecord, UserRepoError, UserRepository};
 
 #[async_trait::async_trait]
-impl UserRepository for DataStore<'_> {
+impl UserRepository for DataStore {
     async fn find_user_by_email(&self, email: &str) -> Result<UserRecord, UserRepoError> {
         match self.database.select(("user", email)).await {
             Ok(user_record) => {
@@ -80,7 +80,6 @@ impl UserRepository for DataStore<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::initialize_test_database;
 
     #[tokio::test]
     async fn test_user_repository() {
@@ -89,8 +88,7 @@ mod tests {
         let email = "test@email.com";
 
         // Start database
-        let db = initialize_test_database().await;
-        let user_repo = DataStore::new(&db);
+        let user_repo = DataStore::new("127.0.0.1:8000", "test", "test").await;
 
         // Create new user
         user_repo

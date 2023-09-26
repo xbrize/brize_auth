@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use surrealdb::opt::RecordId;
 
 #[async_trait]
-impl SessionRepository for DataStore<'_> {
+impl SessionRepository for DataStore {
     async fn create_session(&self, user_record_link: RecordId) -> Option<RecordId> {
         let sql = "
         RETURN (CREATE session:uuid() CONTENT {
@@ -52,12 +52,10 @@ impl SessionRepository for DataStore<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::initialize_test_database;
 
     #[tokio::test]
     async fn test_session_model() {
-        let db = initialize_test_database().await;
-        let session_repo = DataStore::new(&db);
+        let session_repo = DataStore::new("127.0.0.1:8000", "test", "test").await;
 
         let email = "test@email.com";
 
