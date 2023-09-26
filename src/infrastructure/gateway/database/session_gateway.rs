@@ -83,7 +83,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_session_model() {
+    async fn test_session_gateway() {
         let session_repo = DataStore::new("127.0.0.1:8000", "test", "test").await;
 
         let email = "test@email.com";

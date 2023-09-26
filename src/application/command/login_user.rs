@@ -25,10 +25,10 @@ pub async fn login_user<T: UserRepository>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{application::register_user, domain::User, infrastructure::DataStore};
+    use crate::{application::register_user, infrastructure::DataStore};
 
     #[tokio::test]
-    async fn test_register_use_case() {
+    async fn test_login_user_command() {
         // Start database
         let user_repo = DataStore::new("127.0.0.1:8000", "test", "test").await;
 
@@ -36,8 +36,7 @@ mod tests {
         let username = "test-user-name-two";
         let password = "test-pass-word-two";
         let email = "test-login@email.com";
-        let new_user = User::new(username, password, email);
-        register_user(&user_repo, &new_user).await;
+        register_user(&user_repo, username, password, email).await;
 
         let login_attempt = login_user(&user_repo, email, password).await;
         assert!(login_attempt.is_some());

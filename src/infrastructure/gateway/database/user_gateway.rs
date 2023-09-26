@@ -84,7 +84,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_user_repository() {
+    async fn test_user_gateway() {
         let username = "test-user-name";
         let password = "test-pass-word";
         let email = "test@email.com";
