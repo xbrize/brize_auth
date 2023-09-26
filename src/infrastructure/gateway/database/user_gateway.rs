@@ -1,5 +1,4 @@
-use surrealdb::opt::RecordId;
-
+use crate::application::UserRecordId;
 use crate::infrastructure::DataStore;
 use crate::{
     application::{UserRecord, UserRepository},
@@ -34,7 +33,7 @@ impl UserRepository for DataStore {
         username: &str,
         password: &str,
         email: &str,
-    ) -> Result<RecordId, RepositoryError> {
+    ) -> Result<UserRecordId, RepositoryError> {
         let sql = "
         CREATE user CONTENT {
             id: $id,

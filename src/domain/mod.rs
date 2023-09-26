@@ -1,8 +1,4 @@
-pub mod user;
-pub use self::user::*;
-
-pub mod session;
-pub use self::user::*;
-
+mod entity;
+pub use entity::*;
 mod error;
 pub use error::*;

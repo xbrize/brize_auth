@@ -1,17 +1,17 @@
+use crate::application::{SessionRecordId, UserRecordId};
 use crate::infrastructure::DataStore;
 use crate::{
     application::{SessionRecord, SessionRepository},
     domain::RepositoryError,
 };
 use async_trait::async_trait;
-use surrealdb::opt::RecordId;
 
 #[async_trait]
 impl SessionRepository for DataStore {
     async fn create_session(
         &self,
-        user_record_link: RecordId,
-    ) -> Result<RecordId, RepositoryError> {
+        user_record_link: UserRecordId,
+    ) -> Result<SessionRecordId, RepositoryError> {
         let sql = "
         CREATE session:uuid() CONTENT {
             user_record_link: $user,
@@ -55,7 +55,7 @@ impl SessionRepository for DataStore {
 
     async fn get_session(
         &self,
-        session_record_id: RecordId,
+        session_record_id: SessionRecordId,
     ) -> Result<SessionRecord, RepositoryError> {
         match self.database.select(session_record_id).await {
             Ok(session) => {
@@ -89,7 +89,7 @@ mod tests {
         let email = "test@email.com";
 
         let new_session_id = session_repo
-            .create_session(RecordId::from(("user", email)))
+            .create_session(SessionRecordId::from(("user", email)))
             .await;
         assert!(new_session_id.is_ok());
 

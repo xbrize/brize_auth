@@ -1,8 +1,10 @@
-use crate::application::UserRepository;
+use crate::application::{UserRecordId, UserRepository};
 use crate::domain::User;
-use surrealdb::opt::RecordId;
 
-pub async fn register_user<T: UserRepository>(repository: &T, new_user: &User) -> Option<RecordId> {
+pub async fn register_user<T: UserRepository>(
+    repository: &T,
+    new_user: &User,
+) -> Option<UserRecordId> {
     match repository.find_user_by_email(&new_user.get_email()).await {
         Ok(user_record) => {
             println!("User {} Already Exists", user_record.user.get_email());

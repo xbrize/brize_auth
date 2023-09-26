@@ -1,13 +1,12 @@
+use super::{SessionRecordId, UserRecordId};
+use crate::domain::{RepositoryError, Session};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use surrealdb::opt::RecordId;
-
-use crate::domain::{session::Session, RepositoryError};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SessionRecord {
-    pub id: RecordId,
-    pub user_record_link: RecordId,
+    pub id: SessionRecordId,
+    pub user_record_link: UserRecordId,
     pub session: Session,
 }
 
@@ -15,8 +14,10 @@ pub struct SessionRecord {
 pub trait SessionRepository {
     async fn get_session(
         &self,
-        session_record_id: RecordId,
+        session_record_id: SessionRecordId,
     ) -> Result<SessionRecord, RepositoryError>;
-    async fn create_session(&self, user_record_link: RecordId)
-        -> Result<RecordId, RepositoryError>;
+    async fn create_session(
+        &self,
+        user_record_link: UserRecordId,
+    ) -> Result<SessionRecordId, RepositoryError>;
 }

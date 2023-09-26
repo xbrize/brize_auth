@@ -1,12 +1,10 @@
-use surrealdb::opt::RecordId;
-
-use crate::application::UserRepository;
+use crate::application::{UserRecordId, UserRepository};
 
 pub async fn login_user<T: UserRepository>(
     repository: &T,
     email: &str,
     password: &str,
-) -> Option<RecordId> {
+) -> Option<UserRecordId> {
     match repository.find_user_by_email(&email).await {
         Ok(user_record) => {
             if user_record.user.get_password() == password {

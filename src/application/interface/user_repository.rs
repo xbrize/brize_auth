@@ -1,11 +1,11 @@
+use super::UserRecordId;
 use crate::domain::{RepositoryError, User};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use surrealdb::opt::RecordId;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserRecord {
-    pub id: RecordId,
+    pub id: UserRecordId,
     pub user: User,
     pub created_at: String,
 }
@@ -19,5 +19,5 @@ pub trait UserRepository {
         username: &str,
         password: &str,
         email: &str,
-    ) -> Result<RecordId, RepositoryError>;
+    ) -> Result<UserRecordId, RepositoryError>;
 }
