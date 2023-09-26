@@ -1,6 +1,5 @@
 use surreal_auth::{
-    application::{login_user, register_user, start_session, SessionRepository},
-    domain::User,
+    application::SessionRepository,
     infrastructure::{handle_user_registration, DataStore},
 };
 

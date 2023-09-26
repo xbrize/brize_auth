@@ -1,5 +1,4 @@
 use crate::application::{UserRecordId, UserRepository};
-use crate::domain::User;
 
 pub async fn register_user<T: UserRepository>(
     repository: &T,
