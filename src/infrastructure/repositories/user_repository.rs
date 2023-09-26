@@ -1,35 +1,47 @@
-use serde::{Deserialize, Serialize};
+use surrealdb::opt::RecordId;
 
-use super::{DatabaseClient, RecordId};
-use crate::domain::User;
+use super::DatabaseClient;
+use crate::application::{UserRecord, UserRepoError, UserRepository};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct UserRecord {
-    pub id: RecordId,
-    pub user: User,
-    pub created_at: String,
-}
-
-pub struct UserRepository<'a> {
+pub struct UserDataStore<'a> {
     database: &'a DatabaseClient,
 }
 
-impl<'a> UserRepository<'a> {
+impl<'a> UserDataStore<'a> {
     pub fn new(database: &'a DatabaseClient) -> Self {
         Self { database }
     }
+}
 
-    pub async fn find_user_by_email(&self, email: &str) -> Option<UserRecord> {
+#[async_trait::async_trait]
+impl UserRepository for UserDataStore<'_> {
+    async fn find_user_by_email(&self, email: &str) -> Result<UserRecord, UserRepoError> {
         match self.database.select(("user", email)).await {
-            Ok(user) => user,
-            Err(e) => {
-                println!("Error while finding user by email:\n{}", e);
-                None
+            Ok(user_record) => {
+                let user_record: Option<UserRecord> = match user_record {
+                    Some(user_record) => user_record,
+                    None => return Err(UserRepoError::NoUserRecord),
+                };
+
+                if let Some(record) = user_record {
+                    return Ok(record);
+                } else {
+                    return Err(UserRepoError::NoUserRecord);
+                }
+            }
+            Err(surreal_error) => {
+                println!("Error while finding user by email:\n{}", surreal_error);
+                return Err(UserRepoError::QueryFail);
             }
         }
     }
 
-    pub async fn create_user(&self, user: &User) -> surrealdb::Result<()> {
+    async fn create_user(
+        &self,
+        username: &str,
+        password: &str,
+        email: &str,
+    ) -> Result<RecordId, UserRepoError> {
         let sql = "
         CREATE user CONTENT {
             id: $id,
@@ -42,15 +54,36 @@ impl<'a> UserRepository<'a> {
         };
         ";
 
-        self.database
+        let query_result = self
+            .database
             .query(sql)
-            .bind(("id", &user.get_email()))
-            .bind(("username", &user.get_username()))
-            .bind(("password", &user.get_password()))
-            .bind(("email", &user.get_email()))
-            .await?;
+            .bind(("id", email))
+            .bind(("username", username))
+            .bind(("password", password))
+            .bind(("email", email))
+            .await;
 
-        Ok(())
+        match query_result {
+            Ok(mut response) => {
+                let user_record: Option<UserRecord> = match response.take(0) {
+                    Ok(user_record) => user_record,
+                    Err(error) => {
+                        println!("{error}");
+                        return Err(UserRepoError::NoUserRecord);
+                    }
+                };
+
+                if let Some(record) = user_record {
+                    return Ok(record.id);
+                } else {
+                    return Err(UserRepoError::NoUserRecord);
+                }
+            }
+            Err(surreal_error) => {
+                println!("{surreal_error}");
+                Err(UserRepoError::QueryFail)
+            }
+        }
     }
 }
 
@@ -67,14 +100,16 @@ mod tests {
 
         // Start database
         let db = initialize_test_database().await;
-        let user_repo = UserRepository::new(&db);
+        let user_repo = UserDataStore::new(&db);
 
         // Create new user
-        let new_user = User::new(username, password, email);
-        user_repo.create_user(&new_user).await.unwrap();
+        user_repo
+            .create_user(username, password, email)
+            .await
+            .unwrap();
 
         // Test getting user
         let user_record = user_repo.find_user_by_email(email).await.unwrap();
-        assert_eq!(user_record.user.get_email(), new_user.get_email());
+        assert_eq!(user_record.user.get_email(), email);
     }
 }

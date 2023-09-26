@@ -3,14 +3,14 @@ use surreal_auth::{
     domain::User,
     infrastructure::{
         initialize_test_database, session_repository::SessionRepository,
-        user_repository::UserRepository,
+        user_repository::UserDataStore,
     },
 };
 
 #[tokio::main]
 async fn main() -> surrealdb::Result<()> {
     let database = initialize_test_database().await;
-    let user_repo = UserRepository::new(&database);
+    let user_repo = UserDataStore::new(&database);
     let session_repo = SessionRepository::new(&database);
 
     let username = "test_name";

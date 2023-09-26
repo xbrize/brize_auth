@@ -4,7 +4,6 @@ pub mod user_repository;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::Surreal;
 
-pub use surrealdb::opt::RecordId;
 pub type DatabaseClient = Surreal<Client>;
 
 pub async fn initialize_test_database() -> DatabaseClient {

@@ -1,14 +1,14 @@
 use surrealdb::opt::RecordId;
 
-use crate::infrastructure::user_repository::UserRepository;
+use super::UserRepository;
 
-pub async fn login_user(
-    repository: &UserRepository<'_>,
+pub async fn login_user<T: UserRepository>(
+    repository: &T,
     email: &str,
     password: &str,
 ) -> Option<RecordId> {
     match repository.find_user_by_email(&email).await {
-        Some(user_record) => {
+        Ok(user_record) => {
             if user_record.user.get_password() == password {
                 println!("Login Successful");
                 return Some(user_record.id);
@@ -17,7 +17,7 @@ pub async fn login_user(
                 return None;
             }
         }
-        None => {
+        Err(_) => {
             println!("Username Not Found");
             None
         }
@@ -28,19 +28,21 @@ pub async fn login_user(
 mod tests {
     use super::*;
     use crate::{
-        application::register_user, domain::User, infrastructure::initialize_test_database,
+        application::register_user,
+        domain::User,
+        infrastructure::{initialize_test_database, user_repository::UserDataStore},
     };
 
     #[tokio::test]
     async fn test_register_use_case() {
         // Start database
         let db = initialize_test_database().await;
-        let user_repo = UserRepository::new(&db);
+        let user_repo = UserDataStore::new(&db);
 
         // Test registering new user
         let username = "test-user-name-two";
         let password = "test-pass-word-two";
-        let email = "test-two@email.com";
+        let email = "test-login@email.com";
         let new_user = User::new(username, password, email);
         register_user(&user_repo, &new_user).await;
 

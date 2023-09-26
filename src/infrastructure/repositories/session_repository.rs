@@ -1,6 +1,7 @@
-use super::{DatabaseClient, RecordId};
+use super::DatabaseClient;
 use crate::domain::session::Session;
 use serde::{Deserialize, Serialize};
+use surrealdb::opt::RecordId;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SessionRecord {
@@ -8,6 +9,7 @@ pub struct SessionRecord {
     user_record_link: RecordId,
     session: Session,
 }
+
 pub struct SessionRepository<'a> {
     database: &'a DatabaseClient,
 }
