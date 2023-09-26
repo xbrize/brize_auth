@@ -1,5 +1,5 @@
-pub mod session_repository;
-pub mod user_repository;
+pub mod session_store;
+pub mod user_store;
 
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::Surreal;
@@ -16,4 +16,14 @@ pub async fn initialize_test_database() -> DatabaseClient {
         .expect("Could not connect to database:");
 
     db
+}
+
+pub struct DataStore<'a> {
+    database: &'a DatabaseClient,
+}
+
+impl<'a> DataStore<'a> {
+    pub fn new(database: &'a DatabaseClient) -> Self {
+        Self { database }
+    }
 }

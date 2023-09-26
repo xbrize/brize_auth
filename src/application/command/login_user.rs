@@ -1,6 +1,6 @@
 use surrealdb::opt::RecordId;
 
-use super::UserRepository;
+use crate::application::UserRepository;
 
 pub async fn login_user<T: UserRepository>(
     repository: &T,
@@ -30,14 +30,14 @@ mod tests {
     use crate::{
         application::register_user,
         domain::User,
-        infrastructure::{initialize_test_database, user_repository::UserDataStore},
+        infrastructure::{database::DataStore, initialize_test_database},
     };
 
     #[tokio::test]
     async fn test_register_use_case() {
         // Start database
         let db = initialize_test_database().await;
-        let user_repo = UserDataStore::new(&db);
+        let user_repo = DataStore::new(&db);
 
         // Test registering new user
         let username = "test-user-name-two";

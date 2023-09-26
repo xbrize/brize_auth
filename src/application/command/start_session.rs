@@ -1,4 +1,4 @@
-use crate::infrastructure::session_repository::SessionRepository;
+use crate::infrastructure::session_store::SessionRepository;
 use surrealdb::opt::RecordId;
 
 pub async fn start_session(

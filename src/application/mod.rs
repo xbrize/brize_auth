@@ -1,11 +1,5 @@
-mod login_user;
-pub use login_user::*;
+mod command;
+pub use command::*;
 
-mod register_user;
-pub use register_user::*;
-
-mod start_session;
-pub use start_session::*;
-
-mod traits;
-pub use traits::*;
+mod interface;
+pub use interface::*;

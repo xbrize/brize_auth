@@ -1,20 +1,10 @@
 use surrealdb::opt::RecordId;
 
-use super::DatabaseClient;
+use super::DataStore;
 use crate::application::{UserRecord, UserRepoError, UserRepository};
 
-pub struct UserDataStore<'a> {
-    database: &'a DatabaseClient,
-}
-
-impl<'a> UserDataStore<'a> {
-    pub fn new(database: &'a DatabaseClient) -> Self {
-        Self { database }
-    }
-}
-
 #[async_trait::async_trait]
-impl UserRepository for UserDataStore<'_> {
+impl UserRepository for DataStore<'_> {
     async fn find_user_by_email(&self, email: &str) -> Result<UserRecord, UserRepoError> {
         match self.database.select(("user", email)).await {
             Ok(user_record) => {
@@ -100,7 +90,7 @@ mod tests {
 
         // Start database
         let db = initialize_test_database().await;
-        let user_repo = UserDataStore::new(&db);
+        let user_repo = DataStore::new(&db);
 
         // Create new user
         user_repo
