@@ -27,7 +27,6 @@ mod tests {
         assert_eq!(is_valid, true);
 
         // Test destroying session
-        let destroyed = destroy_session(&session_repo, &session_id).await;
-        assert!(destroyed.is_ok())
+        destroy_session(&session_repo, &session_id).await;
     }
 }

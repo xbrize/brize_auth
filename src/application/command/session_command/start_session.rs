@@ -6,6 +6,9 @@ pub async fn start_session<T: SessionRepository>(
 ) -> Option<SessionRecordId> {
     match repository.create_session(user_record_id).await {
         Ok(record_id) => Some(record_id),
-        Err(_) => None,
+        Err(e) => {
+            println!("Start session failed:{:#?}", e);
+            None
+        }
     }
 }

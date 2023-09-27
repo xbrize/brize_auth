@@ -1,5 +1,5 @@
 use crate::{
-    application::{validate_session, SessionRecordId},
+    application::{destroy_session, validate_session, SessionRecordId},
     domain::SessionState,
     infrastructure::DataStore,
 };
@@ -9,6 +9,9 @@ pub async fn handle_session_validation(session_record_id: SessionRecordId) -> Se
 
     match validate_session(&repository, &session_record_id).await {
         true => SessionState::Valid,
-        false => SessionState::Invalid,
+        false => {
+            destroy_session(&repository, &session_record_id).await;
+            return SessionState::Invalid;
+        }
     }
 }

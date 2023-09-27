@@ -15,8 +15,8 @@ pub async fn login_user<T: UserRepository>(
                 return None;
             }
         }
-        Err(_) => {
-            println!("Username Not Found");
+        Err(e) => {
+            println!("Login user failed:{:#?}", e);
             None
         }
     }

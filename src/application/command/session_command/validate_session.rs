@@ -12,6 +12,9 @@ pub async fn validate_session<T: SessionRepository>(
                 true
             }
         }
-        Err(_) => false,
+        Err(e) => {
+            println!("Validating session failed:{:#?}", e);
+            false
+        }
     }
 }

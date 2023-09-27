@@ -17,8 +17,8 @@ pub async fn register_user<T: UserRepository>(
                     println!("User Has Been Created");
                     return Some(record_id);
                 }
-                Err(_) => {
-                    println!("Failed to create new user");
+                Err(e) => {
+                    println!("Register user failed:{:#?}", e);
                     return None;
                 }
             };
