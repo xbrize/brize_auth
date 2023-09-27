@@ -4,9 +4,8 @@ use crate::{
     application::{SessionRecord, SessionRepository},
     domain::RepositoryError,
 };
-use async_trait::async_trait;
 
-#[async_trait]
+#[async_trait::async_trait]
 impl SessionRepository for DataStore {
     async fn create_session(
         &self,
