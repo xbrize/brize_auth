@@ -1,4 +1,4 @@
-# Surreal Auth
+# Brize Auth
 
 An authentication solution for SurrealDB.
 
@@ -9,7 +9,7 @@ An authentication solution for SurrealDB.
     - [x] User Schema
     - [x] User Registration
     - [x] Login
-    - [ ] Session Management
+    - [x] Session Management
     - [ ] Logout
     - [ ] Delete User
   - Authorization
