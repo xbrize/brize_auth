@@ -7,6 +7,10 @@ pub async fn validate_session<T: SessionRepository>(
     match repository.get_session(session_record_id).await {
         Ok(session_record) => {
             if session_record.session.is_expired {
+                match repository.delete_session(session_record_id).await {
+                    Ok(_) => (),
+                    Err(e) => println!("Destroy session failed:{:#?}", e),
+                }
                 false
             } else {
                 true

@@ -4,9 +4,6 @@ pub use start_session::*;
 mod validate_session;
 pub use validate_session::*;
 
-mod destroy_session;
-pub use destroy_session::*;
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -25,8 +22,5 @@ mod tests {
         let session_id = session_id.unwrap();
         let is_valid = validate_session(&session_repo, &session_id).await;
         assert_eq!(is_valid, true);
-
-        // Test destroying session
-        destroy_session(&session_repo, &session_id).await;
     }
 }
