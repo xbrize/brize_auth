@@ -1,4 +1,4 @@
-use surreal_auth::{
+use brize_auth::{
     application::SessionRepository,
     infrastructure::{handle_user_registration, DataStore},
 };

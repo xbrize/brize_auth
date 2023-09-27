@@ -1,9 +1,14 @@
 [package]
-name = "surreal_auth"
+name = "brize_auth"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors=["Jonathan Karrer <karrerjon@gmail.com>"]
+description = "Authentication service wrapping SurrealDB"
+license = "MIT/Apache-2.0"
+repository = "https://github.com/xbrize/brize_auth"
+readme = "README.md"
+keywords = ["auth"]
+categories = ["software"]
 
 [dependencies]
 async-trait = "0.1.73"
