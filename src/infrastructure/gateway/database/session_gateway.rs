@@ -10,7 +10,7 @@ use async_trait::async_trait;
 impl SessionRepository for DataStore {
     async fn create_session(
         &self,
-        user_record_link: UserRecordId,
+        user_record_link: &UserRecordId,
     ) -> Result<SessionRecordId, RepositoryError> {
         let sql = "
         CREATE session:uuid() CONTENT {
@@ -55,7 +55,7 @@ impl SessionRepository for DataStore {
 
     async fn get_session(
         &self,
-        session_record_id: SessionRecordId,
+        session_record_id: &SessionRecordId,
     ) -> Result<SessionRecord, RepositoryError> {
         match self.database.select(session_record_id).await {
             Ok(session) => {
@@ -76,6 +76,23 @@ impl SessionRepository for DataStore {
             }
         }
     }
+
+    async fn delete_session(
+        &self,
+        session_record_id: &SessionRecordId,
+    ) -> Result<(), RepositoryError> {
+        match self
+            .database
+            .delete::<Option<SessionRecord>>(session_record_id)
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                println!("{}", err);
+                return Err(RepositoryError::QueryFail);
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -88,13 +105,20 @@ mod tests {
 
         let email = "test@email.com";
 
+        // Test create session
         let new_session_id = session_repo
-            .create_session(SessionRecordId::from(("user", email)))
-            .await;
-        assert!(new_session_id.is_ok());
+            .create_session(&SessionRecordId::from(("user", email)))
+            .await
+            .unwrap();
 
         // Test get session
-        let session = session_repo.get_session(new_session_id.unwrap()).await;
+        let session = session_repo.get_session(&new_session_id).await;
         assert!(session.is_ok());
+
+        // Test delete session
+        let delete_status = session_repo.delete_session(&new_session_id).await;
+        assert!(delete_status.is_ok());
+        let session = session_repo.get_session(&new_session_id).await;
+        assert!(session.is_err());
     }
 }

@@ -14,10 +14,14 @@ pub struct SessionRecord {
 pub trait SessionRepository {
     async fn get_session(
         &self,
-        session_record_id: SessionRecordId,
+        session_record_id: &SessionRecordId,
     ) -> Result<SessionRecord, RepositoryError>;
     async fn create_session(
         &self,
-        user_record_link: UserRecordId,
+        user_record_link: &UserRecordId,
     ) -> Result<SessionRecordId, RepositoryError>;
+    async fn delete_session(
+        &self,
+        session_record_id: &SessionRecordId,
+    ) -> Result<(), RepositoryError>;
 }

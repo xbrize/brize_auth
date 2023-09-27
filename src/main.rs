@@ -14,6 +14,6 @@ async fn main() -> surrealdb::Result<()> {
     let session_id = handle_user_registration(username, password, email)
         .await
         .unwrap();
-    dbg!(repo.get_session(session_id).await.unwrap());
+    dbg!(repo.get_session(&session_id).await.unwrap());
     Ok(())
 }
