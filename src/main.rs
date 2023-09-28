@@ -15,5 +15,6 @@ async fn main() -> surrealdb::Result<()> {
         .await
         .unwrap();
     repo.get_session(&session_id).await.unwrap();
+
     Ok(())
 }

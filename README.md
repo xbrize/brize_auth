@@ -127,3 +127,5 @@ CREATE TABLE users (
     CONSTRAINT chk_role CHECK (role IN ('user', 'admin', 'editor'))  -- Check constraint for role
 );
 ```
+
+## JWT Token Auth

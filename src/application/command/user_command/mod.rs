@@ -1,8 +1,52 @@
-mod login_user;
-pub use login_user::*;
+use crate::application::{UserRecordId, UserRepository};
 
-mod register_user;
-pub use register_user::*;
+pub async fn login_user<T: UserRepository>(
+    repository: &T,
+    email: &str,
+    password: &str,
+) -> Option<UserRecordId> {
+    match repository.find_user_by_email(&email).await {
+        Ok(user_record) => {
+            if user_record.user.get_password() == password {
+                println!("Login Successful");
+                return Some(user_record.id);
+            } else {
+                println!("Password Did Not Match");
+                return None;
+            }
+        }
+        Err(e) => {
+            println!("Login user failed:{:#?}", e);
+            None
+        }
+    }
+}
+
+pub async fn register_user<T: UserRepository>(
+    repository: &T,
+    username: &str,
+    password: &str,
+    email: &str,
+) -> Option<UserRecordId> {
+    match repository.find_user_by_email(email).await {
+        Ok(user_record) => {
+            println!("User {} Already Exists", user_record.user.get_email());
+            return None;
+        }
+        Err(_) => {
+            match repository.create_user(username, password, email).await {
+                Ok(record_id) => {
+                    println!("User Has Been Created");
+                    return Some(record_id);
+                }
+                Err(e) => {
+                    println!("Register user failed:{:#?}", e);
+                    return None;
+                }
+            };
+        }
+    };
+}
 
 #[cfg(test)]
 mod tests {

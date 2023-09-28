@@ -12,6 +12,7 @@ categories = ["software"]
 
 [dependencies]
 async-trait = "0.1.73"
+jsonwebtoken = "8.3.0"
 serde = { version = "1.0.188", features = ["derive"] }
 surrealdb = "1.0.0"
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
