@@ -20,13 +20,14 @@ pub fn decode_token(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> 
 
 #[cfg(test)]
 mod test {
-    use crate::domain::ClaimsExpiry;
+
+    use crate::domain::Expiry;
 
     use super::*;
 
     #[test]
     fn test_token_validation() {
-        let token = encode_token(Claims::new("jon@gmail.com", ClaimsExpiry::Day(1))).unwrap();
+        let token = encode_token(Claims::new("jon@gmail.com", Expiry::Day(1))).unwrap();
 
         let claims = decode_token(&token).unwrap();
         assert_eq!(claims.sub, "jon@gmail.com")
