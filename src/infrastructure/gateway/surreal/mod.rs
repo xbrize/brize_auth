@@ -16,6 +16,7 @@ pub struct SurrealSessionRecord {
     pub created_at: usize,
     pub expires_at: usize,
 }
+
 pub struct SurrealGateway {
     pub database: Surreal<Client>,
 }
@@ -40,6 +41,7 @@ impl SessionRepository for SurrealGateway {
         &self,
         session_record_id: &SessionRecordId,
     ) -> Result<Session, RepositoryError> {
+        dbg!(&session_record_id);
         match self.database.select(("session", session_record_id)).await {
             Ok(session) => {
                 let session: Option<SurrealSessionRecord> = match session {
@@ -49,7 +51,7 @@ impl SessionRepository for SurrealGateway {
 
                 if let Some(record) = session {
                     let session = Session {
-                        id: record.id.id.to_string(),
+                        id: record.id.id.to_raw(),
                         expires_at: record.expires_at,
                         created_at: record.created_at,
                     };
@@ -65,18 +67,13 @@ impl SessionRepository for SurrealGateway {
         }
     }
 
-    async fn store_session(&self, session: Session) -> Result<SessionRecordId, RepositoryError> {
-        let query_result: Result<Option<SurrealSessionRecord>, surrealdb::Error> = self
-            .database
-            .create(("session", &session.id))
-            .content(&session)
-            .await;
+    async fn store_session(&self, session: &Session) -> Result<SessionRecordId, RepositoryError> {
+        let query_result: Result<Vec<SurrealSessionRecord>, surrealdb::Error> =
+            self.database.create("session").content(&session).await;
 
         match query_result {
-            Ok(session) => match session {
-                Some(session) => Ok(session.id.to_string()),
-                None => Err(RepositoryError::NotFound),
-            },
+            Ok(session) => Ok(session[0].id.id.to_raw()),
+
             Err(e) => {
                 println!("Surreal DB failed to store session: {}", e);
                 Err(RepositoryError::QueryFail)
@@ -190,7 +187,7 @@ mod tests {
 
         // Test create session
         let session = Session::new(Expiry::Day(1));
-        let new_session_id = session_repo.store_session(session).await.unwrap();
+        let new_session_id = session_repo.store_session(&session).await.unwrap();
 
         // Test get session
         let session = session_repo.get_session(&new_session_id).await;

@@ -7,7 +7,7 @@ pub async fn start_session<T: SessionRepository>(
     repository: &T,
 ) -> Result<SessionRecordId, RepositoryError> {
     let session = Session::new(Expiry::Day(1));
-    let record_id = repository.store_session(session).await?;
+    let record_id = repository.store_session(&session).await?;
 
     Ok(record_id)
 }
