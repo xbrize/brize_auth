@@ -1,5 +1,6 @@
 use super::Expiry;
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 
 pub type SessionRecordId = String;
 
@@ -9,11 +10,11 @@ pub enum SessionState {
     Invalid,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Session {
     pub id: SessionRecordId,
-    pub created_at: usize,
-    pub expires_at: usize,
+    pub created_at: u64,
+    pub expires_at: u64,
 }
 
 impl Session {
@@ -23,12 +24,12 @@ impl Session {
 
         Self {
             id: uuid::Uuid::new_v4().to_string(),
-            created_at: now as usize,
+            created_at: now,
             expires_at: duration,
         }
     }
 
     pub fn is_expired(&self) -> bool {
-        self.expires_at < Expiry::now() as usize
+        self.expires_at < Expiry::now()
     }
 }

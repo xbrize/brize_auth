@@ -9,8 +9,8 @@ use crate::domain::{RepositoryError, Session, SessionRecordId, UserRecordId};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
     pub id: Thing,
-    pub created_at: usize,
-    pub expires_at: usize,
+    pub created_at: u64,
+    pub expires_at: u64,
 }
 
 pub struct SurrealGateway {
