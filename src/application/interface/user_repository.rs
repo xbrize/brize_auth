@@ -1,5 +1,4 @@
-use super::UserRecordId;
-use crate::domain::{RepositoryError, User};
+use crate::domain::{RepositoryError, User, UserRecordId};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 

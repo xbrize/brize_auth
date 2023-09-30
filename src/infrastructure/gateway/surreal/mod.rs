@@ -1,12 +1,21 @@
+use serde::{Deserialize, Serialize};
 use surrealdb::engine::remote::ws::{Client, Ws};
+use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
-use crate::application::{SessionRecordId, UserRecord, UserRecordId, UserRepository};
+use crate::application::{UserRecord, UserRepository};
+use crate::domain::{SessionRecordId, UserRecordId};
 use crate::{
-    application::{SessionRecord, SessionRepository},
-    domain::RepositoryError,
+    application::SessionRepository,
+    domain::{RepositoryError, Session},
 };
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SurrealSessionRecord {
+    pub id: Thing,
+    pub created_at: usize,
+    pub expires_at: usize,
+}
 pub struct SurrealGateway {
     pub database: Surreal<Client>,
 }
@@ -27,64 +36,24 @@ impl SurrealGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for SurrealGateway {
-    async fn create_session(
-        &self,
-        user_record_link: &UserRecordId,
-    ) -> Result<SessionRecordId, RepositoryError> {
-        let sql = "
-        CREATE session:uuid() CONTENT {
-            user_record_link: $user,
-            session: {
-                created_at: time::now(),
-                updated_at: <future> {time::now()},
-                expires_at: time::now() + 2w,
-                is_expired: <future> {expires_at < updated_at}
-            },
-        }
-        ";
-
-        let query_result = self
-            .database
-            .query(sql)
-            .bind(("user", user_record_link))
-            .await;
-
-        match query_result {
-            Ok(mut response) => {
-                let session_record: Option<SessionRecord> = match response.take(0) {
-                    Ok(session_record) => session_record,
-                    Err(error) => {
-                        println!("{error}");
-                        return Err(RepositoryError::NotFound);
-                    }
-                };
-
-                if let Some(record) = session_record {
-                    return Ok(record.id);
-                } else {
-                    return Err(RepositoryError::NotFound);
-                }
-            }
-            Err(surreal_error) => {
-                println!("{surreal_error}");
-                Err(RepositoryError::QueryFail)
-            }
-        }
-    }
-
     async fn get_session(
         &self,
         session_record_id: &SessionRecordId,
-    ) -> Result<SessionRecord, RepositoryError> {
-        match self.database.select(session_record_id).await {
+    ) -> Result<Session, RepositoryError> {
+        match self.database.select(("session", session_record_id)).await {
             Ok(session) => {
-                let session: Option<SessionRecord> = match session {
+                let session: Option<SurrealSessionRecord> = match session {
                     Some(session) => session,
                     None => return Err(RepositoryError::NotFound),
                 };
 
                 if let Some(record) = session {
-                    return Ok(record);
+                    let session = Session {
+                        id: record.id.id.to_string(),
+                        expires_at: record.expires_at,
+                        created_at: record.created_at,
+                    };
+                    return Ok(session);
                 } else {
                     return Err(RepositoryError::NotFound);
                 }
@@ -96,13 +65,32 @@ impl SessionRepository for SurrealGateway {
         }
     }
 
+    async fn store_session(&self, session: Session) -> Result<SessionRecordId, RepositoryError> {
+        let query_result: Result<Option<SurrealSessionRecord>, surrealdb::Error> = self
+            .database
+            .create(("session", &session.id))
+            .content(&session)
+            .await;
+
+        match query_result {
+            Ok(session) => match session {
+                Some(session) => Ok(session.id.to_string()),
+                None => Err(RepositoryError::NotFound),
+            },
+            Err(e) => {
+                println!("Surreal DB failed to store session: {}", e);
+                Err(RepositoryError::QueryFail)
+            }
+        }
+    }
+
     async fn delete_session(
         &self,
         session_record_id: &SessionRecordId,
     ) -> Result<(), RepositoryError> {
         match self
             .database
-            .delete::<Option<SessionRecord>>(session_record_id)
+            .delete::<Option<SurrealSessionRecord>>(("session", session_record_id))
             .await
         {
             Ok(_) => Ok(()),
@@ -190,6 +178,8 @@ impl UserRepository for SurrealGateway {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::Expiry;
+
     use super::*;
 
     #[tokio::test]
@@ -199,10 +189,8 @@ mod tests {
         let email = "test@email.com";
 
         // Test create session
-        let new_session_id = session_repo
-            .create_session(&SessionRecordId::from(("user", email)))
-            .await
-            .unwrap();
+        let session = Session::new(Expiry::Day(1));
+        let new_session_id = session_repo.store_session(session).await.unwrap();
 
         // Test get session
         let session = session_repo.get_session(&new_session_id).await;

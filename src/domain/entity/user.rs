@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 use serde::{Deserialize, Serialize};
 
+pub type UserRecordId = String;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
     username: String,

@@ -10,9 +10,11 @@ pub enum SessionState {
     ExpiresSoon,
 }
 
+pub type SessionRecordId = String;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session {
-    pub id: String,
+    pub id: SessionRecordId,
     pub created_at: usize,
     pub expires_at: usize,
 }

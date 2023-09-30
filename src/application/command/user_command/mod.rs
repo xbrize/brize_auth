@@ -1,4 +1,4 @@
-use crate::application::{UserRecordId, UserRepository};
+use crate::{application::UserRepository, domain::UserRecordId};
 
 pub async fn login_user<T: UserRepository>(
     repository: &T,

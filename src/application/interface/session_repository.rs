@@ -1,25 +1,13 @@
-use super::{SessionRecordId, UserRecordId};
-use crate::domain::{RepositoryError, Session};
+use crate::domain::{RepositoryError, Session, SessionRecordId};
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SessionRecord {
-    pub id: SessionRecordId,
-    pub user_record_link: UserRecordId,
-    pub session: Session,
-}
 
 #[async_trait]
 pub trait SessionRepository {
+    async fn store_session(&self, session: Session) -> Result<SessionRecordId, RepositoryError>;
     async fn get_session(
         &self,
         session_record_id: &SessionRecordId,
-    ) -> Result<SessionRecord, RepositoryError>;
-    async fn create_session(
-        &self,
-        user_record_link: &UserRecordId,
-    ) -> Result<SessionRecordId, RepositoryError>;
+    ) -> Result<Session, RepositoryError>;
     async fn delete_session(
         &self,
         session_record_id: &SessionRecordId,

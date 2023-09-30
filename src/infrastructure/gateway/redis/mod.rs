@@ -15,7 +15,7 @@ impl RedisGateway {
         Self { conn }
     }
 
-    pub async fn store_session_in_redis(&mut self, session: &Session) -> redis::RedisResult<()> {
+    pub async fn store_session_in_redis(&mut self, session: &Session) -> RedisResult<()> {
         let session_json = serde_json::to_string(&session).unwrap();
         self.conn.set(&session.id, session_json).await?;
         Ok(())
@@ -24,7 +24,7 @@ impl RedisGateway {
     pub async fn get_session_from_redis(
         &mut self,
         session_id: &str,
-    ) -> redis::RedisResult<Session> {
+    ) -> RedisResult<Session> {
         let session_json: String = self.conn.get(session_id).await?;
         let session: Session = serde_json::from_str(&session_json).unwrap();
         Ok(session)
@@ -33,9 +33,8 @@ impl RedisGateway {
 
 #[cfg(test)]
 mod test {
-    use crate::domain::Expiry;
-
     use super::*;
+    use crate::domain::Expiry;
 
     #[tokio::test]
     async fn test_redis_gateway() {

@@ -1,16 +1,15 @@
-use crate::application::{SessionRecordId, SessionRepository, UserRecordId};
+use crate::{
+    application::SessionRepository,
+    domain::{Expiry, RepositoryError, Session, SessionRecordId},
+};
 
 pub async fn start_session<T: SessionRepository>(
     repository: &T,
-    user_record_id: &UserRecordId,
-) -> Option<SessionRecordId> {
-    match repository.create_session(user_record_id).await {
-        Ok(record_id) => Some(record_id),
-        Err(e) => {
-            println!("Start session failed:{:#?}", e);
-            None
-        }
-    }
+) -> Result<SessionRecordId, RepositoryError> {
+    let session = Session::new(Expiry::Day(1));
+    let record_id = repository.store_session(session).await?;
+
+    Ok(record_id)
 }
 
 pub async fn validate_session<T: SessionRepository>(
@@ -18,8 +17,8 @@ pub async fn validate_session<T: SessionRepository>(
     session_record_id: &SessionRecordId,
 ) -> bool {
     match repository.get_session(session_record_id).await {
-        Ok(session_record) => {
-            if session_record.session.is_expired() {
+        Ok(session) => {
+            if session.is_expired() {
                 match repository.delete_session(session_record_id).await {
                     Ok(_) => (),
                     Err(e) => println!("Destroy session failed:{:#?}", e),
@@ -39,7 +38,10 @@ pub async fn validate_session<T: SessionRepository>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{application::UserRecordId, infrastructure::SurrealGateway};
+    use crate::{
+        domain::{Expiry, Session},
+        infrastructure::SurrealGateway,
+    };
 
     #[tokio::test]
     async fn test_session_commands() {
@@ -47,12 +49,13 @@ mod tests {
         let email = "test@email.com";
 
         // Test starting session
-        let session_id = start_session(&session_repo, &UserRecordId::from(("user", email))).await;
-        assert!(session_id.is_some());
+        let session = Session::new(Expiry::Day(1));
+        let session = start_session(&session_repo).await;
+        assert!(session.is_ok());
 
         // Test validating session
-        let session_id = session_id.unwrap();
-        let is_valid = validate_session(&session_repo, &session_id).await;
+        let session = session.unwrap();
+        let is_valid = validate_session(&session_repo, &session).await;
         assert_eq!(is_valid, true);
     }
 }
