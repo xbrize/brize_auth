@@ -3,12 +3,8 @@ use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
-use crate::application::{UserRecord, UserRepository};
-use crate::domain::{SessionRecordId, UserRecordId};
-use crate::{
-    application::SessionRepository,
-    domain::{RepositoryError, Session},
-};
+use crate::application::{SessionRepository, UserRecord, UserRepository};
+use crate::domain::{RepositoryError, Session, SessionRecordId, UserRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
@@ -37,7 +33,7 @@ impl SurrealGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for SurrealGateway {
-    async fn get_session(
+    async fn get_session_by_id(
         &self,
         session_record_id: &SessionRecordId,
     ) -> Result<Session, RepositoryError> {
@@ -61,7 +57,7 @@ impl SessionRepository for SurrealGateway {
                 }
             }
             Err(surreal_error) => {
-                println!("Error while finding user by email:\n{}", surreal_error);
+                println!("Error while finding session:\n{}", surreal_error);
                 return Err(RepositoryError::QueryFail);
             }
         }
@@ -190,13 +186,13 @@ mod tests {
         let new_session_id = session_repo.store_session(&session).await.unwrap();
 
         // Test get session
-        let session = session_repo.get_session(&new_session_id).await;
+        let session = session_repo.get_session_by_id(&new_session_id).await;
         assert!(session.is_ok());
 
         // Test delete session
         let delete_status = session_repo.delete_session(&new_session_id).await;
         assert!(delete_status.is_ok());
-        let session = session_repo.get_session(&new_session_id).await;
+        let session = session_repo.get_session_by_id(&new_session_id).await;
         assert!(session.is_err());
     }
 

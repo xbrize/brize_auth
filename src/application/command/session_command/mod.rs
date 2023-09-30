@@ -16,7 +16,7 @@ pub async fn validate_session<T: SessionRepository>(
     repository: &T,
     session_record_id: &SessionRecordId,
 ) -> bool {
-    match repository.get_session(session_record_id).await {
+    match repository.get_session_by_id(session_record_id).await {
         Ok(session) => {
             if session.is_expired() {
                 match repository.delete_session(session_record_id).await {
@@ -46,10 +46,8 @@ mod tests {
     #[tokio::test]
     async fn test_session_commands() {
         let session_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
-        let email = "test@email.com";
 
         // Test starting session
-        let session = Session::new(Expiry::Day(1));
         let session = start_session(&session_repo).await;
         assert!(session.is_ok());
 

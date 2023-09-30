@@ -1,16 +1,13 @@
-#![allow(dead_code)]
+use super::Expiry;
 use serde::{Deserialize, Serialize};
 
-use super::Expiry;
+pub type SessionRecordId = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum SessionState {
     Valid,
     Invalid,
-    ExpiresSoon,
 }
-
-pub type SessionRecordId = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session {

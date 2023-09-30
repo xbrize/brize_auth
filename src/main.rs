@@ -19,7 +19,7 @@ async fn main() -> RedisResult<()> {
     dbg!(&session_id);
 
     // Test get session
-    let session = repo.get_session(&session_id).await;
+    let session = repo.get_session_by_id(&session_id).await;
     dbg!(session.unwrap());
 
     Ok(())
