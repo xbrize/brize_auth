@@ -8,13 +8,14 @@ use sqlx::*;
 
 #[tokio::main]
 async fn main() -> RedisResult<()> {
-    let db = MySqlGateway::new().await;
-    db.create_session_table().await;
+    let mut db = MySqlGateway::new().await;
+    // db.create_session_table().await;
 
     let session = Session::new(Expiry::Day(1));
-    db.create_session(&session).await;
+    db.store_session(&session).await.unwrap();
 
     let id = db.get_session_by_id(&session.id).await;
+    dbg!(id.unwrap().is_expired());
     // dbg!(id);
     // let mut redis_gateway = RedisGateway::new("redis://:mypassword@localhost/").await;
     // let session = Session::new(Expiry::Day(1));

@@ -1,6 +1,9 @@
 use sqlx::mysql::MySqlPool;
 
-use crate::domain::{Session, SessionRecordId};
+use crate::{
+    application::SessionRepository,
+    domain::{RepositoryError, Session, SessionRecordId},
+};
 
 pub struct MySqlGateway {
     pub pool: MySqlPool,
@@ -32,8 +35,12 @@ impl MySqlGateway {
     }
 }
 
-impl MySqlGateway {
-    pub async fn create_session(&self, session: &Session) {
+#[async_trait::async_trait]
+impl SessionRepository for MySqlGateway {
+    async fn store_session(
+        &mut self,
+        session: &Session,
+    ) -> Result<SessionRecordId, RepositoryError> {
         sqlx::query(
             r#"
             INSERT INTO sessions (id, created_at, expires_at)
@@ -46,8 +53,25 @@ impl MySqlGateway {
         .execute(&self.pool)
         .await
         .unwrap();
+
+        let session: Session = sqlx::query_as(
+            r#"
+        SELECT id, created_at, expires_at
+        FROM sessions
+        WHERE id = LAST_INSERT_ID()
+        "#,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .unwrap();
+
+        Ok(session.id)
     }
-    pub async fn get_session_by_id(&self, session_id: &SessionRecordId) {
+
+    async fn get_session_by_id(
+        &mut self,
+        session_id: &SessionRecordId,
+    ) -> Result<Session, RepositoryError> {
         let row: Session = sqlx::query_as(
             r#"
         SELECT id, created_at, expires_at
@@ -60,6 +84,13 @@ impl MySqlGateway {
         .await
         .unwrap();
 
-        dbg!(row);
+        Ok(row)
+    }
+
+    async fn delete_session(
+        &mut self,
+        session_record_id: &SessionRecordId,
+    ) -> Result<(), RepositoryError> {
+        Ok(())
     }
 }
