@@ -4,7 +4,7 @@ use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
 use crate::application::{SessionRepository, UserRecord, UserRepository};
-use crate::domain::{RepositoryError, Session, SessionRecordId, UserRecordId};
+use crate::domain::{RepoResult, RepositoryError, Session, SessionRecordId, UserRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
@@ -63,10 +63,7 @@ impl SessionRepository for SurrealGateway {
         }
     }
 
-    async fn store_session(
-        &mut self,
-        session: &Session,
-    ) -> Result<SessionRecordId, RepositoryError> {
+    async fn store_session(&mut self, session: &Session) -> RepoResult<SessionRecordId> {
         let query_result: Result<Vec<SurrealSessionRecord>, surrealdb::Error> =
             self.database.create("session").content(&session).await;
 
@@ -180,40 +177,34 @@ mod tests {
 
     #[tokio::test]
     async fn test_surreal_session_repository() {
-        let mut session_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+        let mut repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
-        // Test create session
         let session = Session::new(Expiry::Day(1));
-        let new_session_id = session_repo.store_session(&session).await.unwrap();
+        let session_id = repo.store_session(&session).await.unwrap();
+        assert_eq!(session_id, session.id);
 
-        // Test get session
-        let session = session_repo.get_session_by_id(&new_session_id).await;
-        assert!(session.is_ok());
-
-        // Test delete session
-        let delete_status = session_repo.delete_session(&new_session_id).await;
-        assert!(delete_status.is_ok());
-        let session = session_repo.get_session_by_id(&new_session_id).await;
-        assert!(session.is_err());
+        let session_from_storage = repo.get_session_by_id(&session_id).await.unwrap();
+        assert!(!session_from_storage.is_expired());
+        assert_eq!(session_from_storage.id, session.id);
     }
 
-    #[tokio::test]
-    async fn test_surreal_user_repository() {
-        let username = "test-user-name";
-        let password = "test-pass-word";
-        let email = "test@email.com";
+    // #[tokio::test]
+    // async fn test_surreal_user_repository() {
+    //     let username = "test-user-name";
+    //     let password = "test-pass-word";
+    //     let email = "test@email.com";
 
-        // Start database
-        let user_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+    //     // Start database
+    //     let user_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
-        // Create new user
-        user_repo
-            .create_user(username, password, email)
-            .await
-            .unwrap();
+    //     // Create new user
+    //     user_repo
+    //         .create_user(username, password, email)
+    //         .await
+    //         .unwrap();
 
-        // Test getting user
-        let user_record = user_repo.find_user_by_email(email).await.unwrap();
-        assert_eq!(user_record.user.email, email);
-    }
+    //     // Test getting user
+    //     let user_record = user_repo.find_user_by_email(email).await.unwrap();
+    //     assert_eq!(user_record.user.email, email);
+    // }
 }

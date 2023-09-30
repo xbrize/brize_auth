@@ -2,7 +2,7 @@ use sqlx::mysql::MySqlPool;
 
 use crate::{
     application::SessionRepository,
-    domain::{RepositoryError, Session, SessionRecordId},
+    domain::{RepoResult, RepositoryError, Session, SessionRecordId},
 };
 
 pub struct MySqlGateway {
@@ -10,9 +10,8 @@ pub struct MySqlGateway {
 }
 
 impl MySqlGateway {
-    pub async fn new() -> Self {
-        let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
-        let pool = MySqlPool::connect(&url)
+    pub async fn new(addr: &str) -> Self {
+        let pool = MySqlPool::connect(addr)
             .await
             .expect("Failed to connect to SqlDb");
 
@@ -37,10 +36,7 @@ impl MySqlGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for MySqlGateway {
-    async fn store_session(
-        &mut self,
-        session: &Session,
-    ) -> Result<SessionRecordId, RepositoryError> {
+    async fn store_session(&mut self, session: &Session) -> RepoResult<SessionRecordId> {
         sqlx::query(
             r#"
             INSERT INTO sessions (id, created_at, expires_at)
@@ -92,5 +88,27 @@ impl SessionRepository for MySqlGateway {
         session_record_id: &SessionRecordId,
     ) -> Result<(), RepositoryError> {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::Expiry;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_mysql_gateway() {
+        let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
+        let mut repo = MySqlGateway::new(url).await;
+        repo.create_session_table().await;
+
+        let session = &Session::new(Expiry::Day(1));
+        let session_id = repo.store_session(session).await.unwrap();
+        assert_eq!(session_id, session.id);
+
+        let session_from_repo = repo.get_session_by_id(&session_id).await.unwrap();
+        assert_eq!(session_from_repo.is_expired(), false);
+        assert_eq!(session_from_repo.id, session.id);
     }
 }

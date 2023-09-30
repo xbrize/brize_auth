@@ -2,7 +2,7 @@ use redis::aio::Connection;
 use redis::{AsyncCommands, RedisResult};
 
 use crate::application::SessionRepository;
-use crate::domain::{RepositoryError, Session, SessionRecordId};
+use crate::domain::{RepoResult, RepositoryError, Session, SessionRecordId};
 
 pub struct RedisGateway {
     conn: Connection,
@@ -19,10 +19,7 @@ impl RedisGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for RedisGateway {
-    async fn store_session(
-        &mut self,
-        session: &Session,
-    ) -> Result<SessionRecordId, RepositoryError> {
+    async fn store_session(&mut self, session: &Session) -> RepoResult<SessionRecordId> {
         let session_json = serde_json::to_string(&session).unwrap();
         let setter: RedisResult<()> = self.conn.set(&session.id, session_json).await;
 
@@ -64,11 +61,14 @@ mod test {
         let mut redis_gateway = RedisGateway::new("redis://:mypassword@localhost/").await;
         let session = Session::new(Expiry::Day(1));
 
-        let storage_result = redis_gateway.store_session(&session).await;
-        assert!(storage_result.is_ok());
+        let storage_result_id = redis_gateway.store_session(&session).await;
+        assert!(storage_result_id.is_ok());
 
-        let session_from_storage = redis_gateway.get_session_by_id(&session.id).await.unwrap();
-        assert_eq!(session_from_storage.created_at, session.created_at);
+        let session_from_storage = redis_gateway
+            .get_session_by_id(&storage_result_id.unwrap())
+            .await
+            .unwrap();
         assert_eq!(session_from_storage.is_expired(), false);
+        assert_eq!(session_from_storage.id, session.id);
     }
 }

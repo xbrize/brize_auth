@@ -1,8 +1,8 @@
-mod session_command;
-pub use session_command::*;
+mod session;
+pub use session::*;
 
-mod user_command;
-pub use user_command::*;
+mod user;
+pub use user::*;
 
-mod token_command;
-pub use token_command::*;
+mod token;
+pub use token::*;

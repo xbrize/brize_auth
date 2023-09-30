@@ -5,8 +5,9 @@ use crate::{
 
 pub async fn start_session<T: SessionRepository>(
     repository: &mut T,
+    session_duration: Expiry,
 ) -> RepoResult<SessionRecordId> {
-    let session = Session::new(Expiry::Day(1));
+    let session = Session::new(session_duration);
     let record_id = repository.store_session(&session).await?;
 
     Ok(record_id)

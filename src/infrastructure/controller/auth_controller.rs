@@ -1,6 +1,6 @@
 use crate::{
     application::{login_user, register_user, start_session, validate_session},
-    domain::{SessionRecordId, SessionState},
+    domain::{Expiry, SessionRecordId, SessionState},
     infrastructure::SurrealGateway,
 };
 
@@ -9,7 +9,9 @@ pub async fn handle_user_login(email: &str, password: &str) -> Option<SessionRec
 
     match login_user(&repository, email, password).await {
         Some(_) => {
-            let session_id = start_session(&mut repository).await.unwrap();
+            let session_id = start_session(&mut repository, Expiry::Day(1))
+                .await
+                .unwrap();
             Some(session_id)
         }
         None => None,
@@ -25,7 +27,9 @@ pub async fn handle_user_registration(
 
     match register_user(&repository, username, password, email).await {
         Some(_) => {
-            let session_id = start_session(&mut repository).await.unwrap();
+            let session_id = start_session(&mut repository, Expiry::Day(1))
+                .await
+                .unwrap();
             Some(session_id)
         }
         None => None,
