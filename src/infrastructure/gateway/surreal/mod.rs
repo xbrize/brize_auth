@@ -214,6 +214,6 @@ mod tests {
 
         // Test getting user
         let user_record = user_repo.find_user_by_email(email).await.unwrap();
-        assert_eq!(user_record.user.get_email(), email);
+        assert_eq!(user_record.user.email, email);
     }
 }

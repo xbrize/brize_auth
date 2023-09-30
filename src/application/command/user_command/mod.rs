@@ -7,7 +7,7 @@ pub async fn login_user<T: UserRepository>(
 ) -> Option<UserRecordId> {
     match repository.find_user_by_email(&email).await {
         Ok(user_record) => {
-            if user_record.user.get_password() == password {
+            if user_record.user.match_password(password) {
                 println!("Login Successful");
                 return Some(user_record.id);
             } else {
@@ -30,7 +30,7 @@ pub async fn register_user<T: UserRepository>(
 ) -> Option<UserRecordId> {
     match repository.find_user_by_email(email).await {
         Ok(user_record) => {
-            println!("User {} Already Exists", user_record.user.get_email());
+            println!("User {} Already Exists", user_record.user.email);
             return None;
         }
         Err(_) => {

@@ -72,3 +72,14 @@ impl Expiry {
         Self::expiry_util(year_in_sec * count)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_expiry_entity() {
+        let exp = Expiry::Day(1);
+        assert!(!exp.is_expired());
+    }
+}

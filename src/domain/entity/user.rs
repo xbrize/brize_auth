@@ -5,9 +5,9 @@ pub type UserRecordId = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
-    username: String,
+    pub username: String,
+    pub email: String,
     password: String,
-    email: String,
 }
 
 impl User {
@@ -19,15 +19,8 @@ impl User {
         }
     }
 
-    pub fn get_username(&self) -> String {
-        self.username.to_string()
-    }
-    pub fn get_password(&self) -> String {
-        self.password.to_string()
-    }
-
-    pub fn get_email(&self) -> String {
-        self.email.to_string()
+    pub fn match_password(&self, password: &str) -> bool {
+        &self.password == password
     }
 }
 
@@ -42,9 +35,6 @@ mod tests {
         let email = "test@email.com";
 
         let new_user = User::new(username, password, email);
-
-        assert_eq!(new_user.get_email(), email);
-        assert_eq!(new_user.get_username(), username);
-        assert_eq!(new_user.get_password(), password);
+        assert!(new_user.match_password(password));
     }
 }
