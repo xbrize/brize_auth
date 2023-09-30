@@ -1,11 +1,11 @@
 use crate::{
     application::SessionRepository,
-    domain::{Expiry, RepositoryError, Session, SessionRecordId},
+    domain::{Expiry, RepoResult, Session, SessionRecordId},
 };
 
 pub async fn start_session<T: SessionRepository>(
     repository: &mut T,
-) -> Result<SessionRecordId, RepositoryError> {
+) -> RepoResult<SessionRecordId> {
     let session = Session::new(Expiry::Day(1));
     let record_id = repository.store_session(&session).await?;
 

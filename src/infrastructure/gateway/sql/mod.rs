@@ -56,10 +56,10 @@ impl SessionRepository for MySqlGateway {
 
         let session: Session = sqlx::query_as(
             r#"
-        SELECT id, created_at, expires_at
-        FROM sessions
-        WHERE id = LAST_INSERT_ID()
-        "#,
+            SELECT id, created_at, expires_at
+            FROM sessions
+            WHERE id = LAST_INSERT_ID()
+            "#,
         )
         .fetch_one(&self.pool)
         .await
