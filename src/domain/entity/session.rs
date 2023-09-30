@@ -33,3 +33,14 @@ impl Session {
         self.expires_at < Expiry::now()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_session_entity() {
+        let session = Session::new(Expiry::Second(1));
+        assert!(!session.is_expired());
+    }
+}

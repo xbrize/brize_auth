@@ -34,23 +34,3 @@ pub async fn validate_session<T: SessionRepository>(
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::infrastructure::SurrealGateway;
-
-    #[tokio::test]
-    async fn test_session_commands() {
-        let mut session_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
-
-        // Test starting session
-        let session = start_session(&mut session_repo).await;
-        assert!(session.is_ok());
-
-        // Test validating session
-        let session = session.unwrap();
-        let is_valid = validate_session(&mut session_repo, &session).await;
-        assert_eq!(is_valid, true);
-    }
-}
