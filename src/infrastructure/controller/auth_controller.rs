@@ -5,11 +5,11 @@ use crate::{
 };
 
 pub async fn handle_user_login(email: &str, password: &str) -> Option<SessionRecordId> {
-    let repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+    let mut repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
     match login_user(&repository, email, password).await {
         Some(_) => {
-            let session_id = start_session(&repository).await.unwrap();
+            let session_id = start_session(&mut repository).await.unwrap();
             Some(session_id)
         }
         None => None,
@@ -21,11 +21,11 @@ pub async fn handle_user_registration(
     password: &str,
     email: &str,
 ) -> Option<SessionRecordId> {
-    let repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+    let mut repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
     match register_user(&repository, username, password, email).await {
         Some(_) => {
-            let session_id = start_session(&repository).await.unwrap();
+            let session_id = start_session(&mut repository).await.unwrap();
             Some(session_id)
         }
         None => None,
@@ -33,9 +33,9 @@ pub async fn handle_user_registration(
 }
 
 pub async fn handle_user_validation(session_record_id: SessionRecordId) -> SessionState {
-    let repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+    let mut repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
-    match validate_session(&repository, &session_record_id).await {
+    match validate_session(&mut repository, &session_record_id).await {
         true => SessionState::Valid,
         false => SessionState::Invalid,
     }

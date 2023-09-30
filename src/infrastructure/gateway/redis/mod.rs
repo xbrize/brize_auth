@@ -1,7 +1,8 @@
 use redis::aio::Connection;
 use redis::{AsyncCommands, RedisResult};
 
-use crate::domain::Session;
+use crate::application::SessionRepository;
+use crate::domain::{RepositoryError, Session, SessionRecordId};
 
 pub struct RedisGateway {
     conn: Connection,
@@ -14,20 +15,42 @@ impl RedisGateway {
 
         Self { conn }
     }
+}
 
-    pub async fn store_session_in_redis(&mut self, session: &Session) -> RedisResult<()> {
+#[async_trait::async_trait]
+impl SessionRepository for RedisGateway {
+    async fn store_session(
+        &mut self,
+        session: &Session,
+    ) -> Result<SessionRecordId, RepositoryError> {
         let session_json = serde_json::to_string(&session).unwrap();
-        self.conn.set(&session.id, session_json).await?;
-        Ok(())
+        let setter: RedisResult<()> = self.conn.set(&session.id, session_json).await;
+
+        match setter {
+            Ok(_) => Ok(session.id.to_owned()),
+            Err(e) => Err(RepositoryError::QueryFail),
+        }
     }
 
-    pub async fn get_session_from_redis(
+    async fn get_session_by_id(
         &mut self,
-        session_id: &str,
-    ) -> RedisResult<Session> {
-        let session_json: String = self.conn.get(session_id).await?;
-        let session: Session = serde_json::from_str(&session_json).unwrap();
-        Ok(session)
+        session_record_id: &SessionRecordId,
+    ) -> Result<Session, RepositoryError> {
+        let session_json: RedisResult<String> = self.conn.get(session_record_id.to_string()).await;
+        match session_json {
+            Ok(session_string) => {
+                let session: Session = serde_json::from_str(&session_string).unwrap();
+                Ok(session)
+            }
+            Err(e) => Err(RepositoryError::QueryFail),
+        }
+    }
+
+    async fn delete_session(
+        &mut self,
+        session_record_id: &SessionRecordId,
+    ) -> Result<(), RepositoryError> {
+        Ok(())
     }
 }
 
@@ -41,13 +64,10 @@ mod test {
         let mut redis_gateway = RedisGateway::new("redis://:mypassword@localhost/").await;
         let session = Session::new(Expiry::Day(1));
 
-        let storage_result = redis_gateway.store_session_in_redis(&session).await;
+        let storage_result = redis_gateway.store_session(&session).await;
         assert!(storage_result.is_ok());
 
-        let session_from_storage = redis_gateway
-            .get_session_from_redis(&session.id)
-            .await
-            .unwrap();
+        let session_from_storage = redis_gateway.get_session_by_id(&session.id).await.unwrap();
         assert_eq!(session_from_storage.created_at, session.created_at);
         assert_eq!(session_from_storage.is_expired(), false);
     }

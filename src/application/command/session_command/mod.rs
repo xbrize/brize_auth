@@ -4,7 +4,7 @@ use crate::{
 };
 
 pub async fn start_session<T: SessionRepository>(
-    repository: &T,
+    repository: &mut T,
 ) -> Result<SessionRecordId, RepositoryError> {
     let session = Session::new(Expiry::Day(1));
     let record_id = repository.store_session(&session).await?;
@@ -13,7 +13,7 @@ pub async fn start_session<T: SessionRepository>(
 }
 
 pub async fn validate_session<T: SessionRepository>(
-    repository: &T,
+    repository: &mut T,
     session_record_id: &SessionRecordId,
 ) -> bool {
     match repository.get_session_by_id(session_record_id).await {
@@ -38,22 +38,19 @@ pub async fn validate_session<T: SessionRepository>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        domain::{Expiry, Session},
-        infrastructure::SurrealGateway,
-    };
+    use crate::infrastructure::SurrealGateway;
 
     #[tokio::test]
     async fn test_session_commands() {
-        let session_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+        let mut session_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
         // Test starting session
-        let session = start_session(&session_repo).await;
+        let session = start_session(&mut session_repo).await;
         assert!(session.is_ok());
 
         // Test validating session
         let session = session.unwrap();
-        let is_valid = validate_session(&session_repo, &session).await;
+        let is_valid = validate_session(&mut session_repo, &session).await;
         assert_eq!(is_valid, true);
     }
 }

@@ -34,7 +34,7 @@ impl SurrealGateway {
 #[async_trait::async_trait]
 impl SessionRepository for SurrealGateway {
     async fn get_session_by_id(
-        &self,
+        &mut self,
         session_record_id: &SessionRecordId,
     ) -> Result<Session, RepositoryError> {
         dbg!(&session_record_id);
@@ -63,7 +63,10 @@ impl SessionRepository for SurrealGateway {
         }
     }
 
-    async fn store_session(&self, session: &Session) -> Result<SessionRecordId, RepositoryError> {
+    async fn store_session(
+        &mut self,
+        session: &Session,
+    ) -> Result<SessionRecordId, RepositoryError> {
         let query_result: Result<Vec<SurrealSessionRecord>, surrealdb::Error> =
             self.database.create("session").content(&session).await;
 
@@ -78,7 +81,7 @@ impl SessionRepository for SurrealGateway {
     }
 
     async fn delete_session(
-        &self,
+        &mut self,
         session_record_id: &SessionRecordId,
     ) -> Result<(), RepositoryError> {
         match self
@@ -177,9 +180,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_surreal_session_repository() {
-        let session_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
-
-        let email = "test@email.com";
+        let mut session_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
         // Test create session
         let session = Session::new(Expiry::Day(1));
