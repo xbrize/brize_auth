@@ -39,11 +39,11 @@ pub async fn validate_session<T: SessionRepository>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{application::UserRecordId, infrastructure::DataStore};
+    use crate::{application::UserRecordId, infrastructure::SurrealGateway};
 
     #[tokio::test]
     async fn test_session_commands() {
-        let session_repo = DataStore::new("127.0.0.1:8000", "test", "test").await;
+        let session_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
         let email = "test@email.com";
 
         // Test starting session

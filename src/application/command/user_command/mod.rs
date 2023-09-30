@@ -50,13 +50,14 @@ pub async fn register_user<T: UserRepository>(
 
 #[cfg(test)]
 mod tests {
+    use crate::infrastructure::SurrealGateway;
+
     use super::*;
-    use crate::infrastructure::DataStore;
 
     #[tokio::test]
     async fn test_register_command() {
         // Start database
-        let user_repo = DataStore::new("127.0.0.1:8000", "test", "test").await;
+        let user_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
         // Test registering new user
         let username = "test-user-name-two";
@@ -73,7 +74,7 @@ mod tests {
     #[tokio::test]
     async fn test_login_command() {
         // Start database
-        let user_repo = DataStore::new("127.0.0.1:8000", "test", "test").await;
+        let user_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
         // Test registering new user
         let username = "test-user-name-two";
