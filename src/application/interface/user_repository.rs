@@ -9,14 +9,12 @@ pub struct UserRecord {
     pub created_at: String,
 }
 
+// TODO run results through a filter as a safety guard for sensitive data
 #[async_trait]
 pub trait UserRepository {
-    async fn find_user_by_email(&self, user_email: &str) -> Result<UserRecord, RepositoryError>;
+    async fn find_user_by_email(&self, user_email: &str) -> Result<User, RepositoryError>;
+    // async fn find_user_by_username(&self, user_email: &str) -> Result<UserRecord, RepositoryError>;
+    // async fn find_user_by_id(&self, user_email: &str) -> Result<UserRecord, RepositoryError>;
 
-    async fn create_user(
-        &self,
-        username: &str,
-        password: &str,
-        email: &str,
-    ) -> Result<UserRecordId, RepositoryError>;
+    async fn store_user(&self, user: &User) -> Result<UserRecordId, RepositoryError>;
 }
