@@ -25,7 +25,7 @@ impl SessionRepository for RedisGateway {
 
         match setter {
             Ok(_) => Ok(session.id.to_owned()),
-            Err(e) => Err(RepositoryError::QueryFail),
+            Err(_) => Err(RepositoryError::QueryFail),
         }
     }
 
@@ -39,13 +39,13 @@ impl SessionRepository for RedisGateway {
                 let session: Session = serde_json::from_str(&session_string).unwrap();
                 Ok(session)
             }
-            Err(e) => Err(RepositoryError::QueryFail),
+            Err(_) => Err(RepositoryError::QueryFail),
         }
     }
 
     async fn delete_session(
         &mut self,
-        session_record_id: &SessionRecordId,
+        _session_record_id: &SessionRecordId,
     ) -> Result<(), RepositoryError> {
         Ok(())
     }

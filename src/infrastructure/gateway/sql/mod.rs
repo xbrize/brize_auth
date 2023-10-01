@@ -85,7 +85,7 @@ impl SessionRepository for MySqlGateway {
 
     async fn delete_session(
         &mut self,
-        session_record_id: &SessionRecordId,
+        _session_record_id: &SessionRecordId,
     ) -> Result<(), RepositoryError> {
         Ok(())
     }
