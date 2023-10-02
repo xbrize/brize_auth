@@ -1,14 +1,15 @@
 #![allow(dead_code)]
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 
 pub type UserRecordId = String;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: String,
     pub username: String,
     pub email: String,
-    password: String,
+    pub password: String,
     // pub created_at: String,
     // pub last_login: String,
 }

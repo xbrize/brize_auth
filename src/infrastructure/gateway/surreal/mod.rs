@@ -3,7 +3,7 @@ use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
-use crate::application::{SessionRepository, UserRecord, UserRepository};
+use crate::application::{SessionRepository, UserRepository};
 use crate::domain::{RepoResult, RepositoryError, Session, SessionRecordId, User, UserRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
