@@ -1,10 +1,10 @@
-use sqlx::mysql::MySqlPool;
-use surrealdb::sql;
+use std::error::Error;
 
 use crate::{
     application::{SessionRepository, UserRepository},
-    domain::{RepoResult, RepositoryError, Session, SessionRecordId, User, UserRecordId},
+    domain::{RepoResult, Session, SessionRecordId, User, UserRecordId},
 };
+use sqlx::mysql::MySqlPool;
 
 pub struct MySqlGateway {
     pub pool: MySqlPool,
@@ -53,7 +53,7 @@ impl MySqlGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for MySqlGateway {
-    async fn store_session(&mut self, session: &Session) -> RepoResult<SessionRecordId> {
+    async fn store_session(&mut self, session: &Session) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             r#"
             INSERT INTO sessions (id, created_at, expires_at)
@@ -64,28 +64,15 @@ impl SessionRepository for MySqlGateway {
         .bind(session.created_at as i64) // Converting usize to i64 for compatibility
         .bind(session.expires_at as i64)
         .execute(&self.pool)
-        .await
-        .unwrap();
+        .await?;
 
-        let session: Session = sqlx::query_as(
-            r#"
-            SELECT id, created_at, expires_at
-            FROM sessions
-            WHERE id = ?
-            "#,
-        )
-        .bind(&session.id)
-        .fetch_one(&self.pool)
-        .await
-        .unwrap();
-
-        Ok(session.id)
+        Ok(())
     }
 
     async fn get_session_by_id(
         &mut self,
         session_id: &SessionRecordId,
-    ) -> Result<Session, RepositoryError> {
+    ) -> Result<Session, Box<dyn Error>> {
         let session: Session = sqlx::query_as(
             r#"
         SELECT id, created_at, expires_at
@@ -95,8 +82,7 @@ impl SessionRepository for MySqlGateway {
         )
         .bind(session_id)
         .fetch_one(&self.pool)
-        .await
-        .unwrap();
+        .await?;
 
         Ok(session)
     }
@@ -104,7 +90,7 @@ impl SessionRepository for MySqlGateway {
     async fn delete_session(
         &mut self,
         _session_record_id: &SessionRecordId,
-    ) -> Result<(), RepositoryError> {
+    ) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 }
@@ -160,10 +146,10 @@ mod tests {
         repo.create_session_table().await;
 
         let session = &Session::new(Expiry::Day(1));
-        let session_id = repo.store_session(session).await.unwrap();
-        assert_eq!(session_id, session.id);
+        let query = repo.store_session(session).await;
+        assert!(query.is_ok());
 
-        let session_from_repo = repo.get_session_by_id(&session_id).await.unwrap();
+        let session_from_repo = repo.get_session_by_id(&session.id).await.unwrap();
         assert_eq!(session_from_repo.is_expired(), false);
         assert_eq!(session_from_repo.id, session.id);
     }

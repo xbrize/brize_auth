@@ -1,10 +1,12 @@
+use std::error::Error;
+
 use serde::{Deserialize, Serialize};
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
 use crate::application::{SessionRepository, UserRepository};
-use crate::domain::{RepoResult, RepositoryError, Session, SessionRecordId, User, UserRecordId};
+use crate::domain::{RepositoryError, Session, SessionRecordId, User, UserRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
@@ -44,61 +46,40 @@ impl SessionRepository for SurrealGateway {
     async fn get_session_by_id(
         &mut self,
         session_record_id: &SessionRecordId,
-    ) -> Result<Session, RepositoryError> {
-        match self.database.select(("session", session_record_id)).await {
-            Ok(session) => {
-                let session: Option<SurrealSessionRecord> = match session {
-                    Some(session) => session,
-                    None => return Err(RepositoryError::NotFound),
-                };
+    ) -> Result<Session, Box<dyn Error>> {
+        let session: Option<SurrealSessionRecord> =
+            self.database.select(("session", session_record_id)).await?;
 
-                if let Some(record) = session {
-                    let session = Session {
-                        id: record.id.id.to_raw(),
-                        expires_at: record.expires_at,
-                        created_at: record.created_at,
-                    };
-                    return Ok(session);
-                } else {
-                    return Err(RepositoryError::NotFound);
-                }
-            }
-            Err(surreal_error) => {
-                println!("Error while finding session:\n{}", surreal_error);
-                return Err(RepositoryError::QueryFail);
-            }
+        if let Some(record) = session {
+            let session = Session {
+                id: record.id.id.to_raw(),
+                expires_at: record.expires_at,
+                created_at: record.created_at,
+            };
+            return Ok(session);
+        } else {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "No session record found",
+            )));
         }
     }
 
-    async fn store_session(&mut self, session: &Session) -> RepoResult<SessionRecordId> {
-        let query_result: Result<Vec<SurrealSessionRecord>, surrealdb::Error> =
-            self.database.create("session").content(&session).await;
-
-        match query_result {
-            Ok(session) => Ok(session[0].id.id.to_raw()),
-
-            Err(e) => {
-                println!("Surreal DB failed to store session: {}", e);
-                Err(RepositoryError::QueryFail)
-            }
-        }
+    async fn store_session(&mut self, session: &Session) -> Result<(), Box<dyn Error>> {
+        let session: Vec<SurrealSessionRecord> =
+            self.database.create("session").content(&session).await?;
+        Ok(())
     }
 
     async fn delete_session(
         &mut self,
         session_record_id: &SessionRecordId,
-    ) -> Result<(), RepositoryError> {
-        match self
-            .database
+    ) -> Result<(), Box<dyn Error>> {
+        self.database
             .delete::<Option<SurrealSessionRecord>>(("session", session_record_id))
-            .await
-        {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                println!("{}", err);
-                return Err(RepositoryError::QueryFail);
-            }
-        }
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -171,10 +152,10 @@ mod tests {
         let mut repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
         let session = Session::new(Expiry::Day(1));
-        let session_id = repo.store_session(&session).await.unwrap();
-        assert_eq!(session_id, session.id);
+        let query = repo.store_session(&session).await;
+        assert!(query.is_ok());
 
-        let session_from_storage = repo.get_session_by_id(&session_id).await.unwrap();
+        let session_from_storage = repo.get_session_by_id(&session.id).await.unwrap();
         assert!(!session_from_storage.is_expired());
         assert_eq!(session_from_storage.id, session.id);
     }

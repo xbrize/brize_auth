@@ -1,38 +1,31 @@
+use std::error::Error;
+
 use crate::{
     application::SessionRepository,
-    domain::{Expiry, RepoResult, Session, SessionRecordId},
+    domain::{Expiry, Session, SessionRecordId},
 };
 
 pub async fn start_session<T: SessionRepository>(
     repository: &mut T,
     session_duration: Expiry,
-) -> RepoResult<SessionRecordId> {
+) -> Result<SessionRecordId, Box<dyn Error>> {
     let session = Session::new(session_duration);
-    let record_id = repository.store_session(&session).await?;
+    repository.store_session(&session).await?;
 
-    Ok(record_id)
+    Ok(session.id)
 }
 
 pub async fn validate_session<T: SessionRepository>(
     repository: &mut T,
     session_record_id: &SessionRecordId,
-) -> bool {
-    match repository.get_session_by_id(session_record_id).await {
-        Ok(session) => {
-            if session.is_expired() {
-                match repository.delete_session(session_record_id).await {
-                    Ok(_) => (),
-                    Err(e) => println!("Destroy session failed:{:#?}", e),
-                }
-                false
-            } else {
-                true
-            }
-        }
-        Err(e) => {
-            println!("Validating session failed:{:#?}", e);
-            false
-        }
+) -> Result<bool, Box<dyn Error>> {
+    let session = repository.get_session_by_id(session_record_id).await?;
+
+    if session.is_expired() {
+        repository.delete_session(session_record_id).await?;
+        Ok(false)
+    } else {
+        Ok(true)
     }
 }
 
@@ -50,7 +43,7 @@ mod tests {
 
         let session_id = session_id.unwrap();
 
-        let is_valid = validate_session(&mut repo, &session_id).await;
+        let is_valid = validate_session(&mut repo, &session_id).await.unwrap();
         assert!(is_valid);
     }
 }

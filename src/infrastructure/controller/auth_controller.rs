@@ -36,11 +36,11 @@ pub async fn handle_user_registration(
     }
 }
 
-pub async fn handle_user_validation(session_record_id: SessionRecordId) -> SessionState {
-    let mut repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+// pub async fn handle_user_validation(session_record_id: SessionRecordId) -> SessionState {
+//     let mut repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
-    match validate_session(&mut repository, &session_record_id).await {
-        true => SessionState::Valid,
-        false => SessionState::Invalid,
-    }
-}
+//     match validate_session(&mut repository, &session_record_id).await {
+//         true => SessionState::Valid,
+//         false => SessionState::Invalid,
+//     }
+// }
