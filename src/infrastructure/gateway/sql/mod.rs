@@ -2,7 +2,7 @@ use std::error::Error;
 
 use crate::{
     application::{SessionRepository, UserRepository},
-    domain::{RepoResult, Session, SessionRecordId, User, UserRecordId},
+    domain::{Session, SessionRecordId, User},
 };
 use sqlx::mysql::MySqlPool;
 
@@ -97,7 +97,7 @@ impl SessionRepository for MySqlGateway {
 
 #[async_trait::async_trait]
 impl UserRepository for MySqlGateway {
-    async fn store_user(&self, user: &User) -> RepoResult<UserRecordId> {
+    async fn store_user(&self, user: &User) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             r#"
             INSERT INTO users (id, username, password, email)
@@ -109,14 +109,13 @@ impl UserRepository for MySqlGateway {
         .bind(&user.password)
         .bind(&user.email)
         .execute(&self.pool)
-        .await
-        .unwrap();
+        .await?;
 
-        Ok(user.id.to_string())
+        Ok(())
     }
 
     // TODO scrub out user's password
-    async fn find_user_by_email(&self, email: &str) -> RepoResult<User> {
+    async fn find_user_by_email(&self, email: &str) -> Result<User, Box<dyn Error>> {
         let user: User = sqlx::query_as(
             r#"
             SELECT id, username, email, password
@@ -126,8 +125,7 @@ impl UserRepository for MySqlGateway {
         )
         .bind(email)
         .fetch_one(&self.pool)
-        .await
-        .unwrap();
+        .await?;
 
         Ok(user)
     }

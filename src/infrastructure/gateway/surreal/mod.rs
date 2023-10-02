@@ -6,7 +6,7 @@ use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
 use crate::application::{SessionRepository, UserRepository};
-use crate::domain::{RepositoryError, Session, SessionRecordId, User, UserRecordId};
+use crate::domain::{Session, SessionRecordId, User};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
@@ -66,8 +66,10 @@ impl SessionRepository for SurrealGateway {
     }
 
     async fn store_session(&mut self, session: &Session) -> Result<(), Box<dyn Error>> {
-        let session: Vec<SurrealSessionRecord> =
-            self.database.create("session").content(&session).await?;
+        self.database
+            .create::<Vec<SurrealSessionRecord>>("session")
+            .content(&session)
+            .await?;
         Ok(())
     }
 
@@ -85,7 +87,7 @@ impl SessionRepository for SurrealGateway {
 
 #[async_trait::async_trait]
 impl UserRepository for SurrealGateway {
-    async fn find_user_by_email(&self, email: &str) -> Result<User, RepositoryError> {
+    async fn find_user_by_email(&self, email: &str) -> Result<User, Box<dyn Error>> {
         let sql = "
         SELECT * from user where email = $email
         ";
@@ -97,6 +99,7 @@ impl UserRepository for SurrealGateway {
             .await
             .unwrap();
 
+        // TODO do not return password
         let user_record: Vec<SurrealUserRecord> = query_result.take(0).unwrap();
         let user = User::new(
             &user_record[0].username,
@@ -104,40 +107,15 @@ impl UserRepository for SurrealGateway {
             &user_record[0].email,
         );
         Ok(user)
-        //     match self.database.select(("user", email)).await {
-        //         Ok(user_record) => {
-        //             let user_record: Option<SurrealUserRecord> = match user_record {
-        //                 Some(user_record) => user_record,
-        //                 None => return Err(RepositoryError::NotFound),
-        //             };
-
-        //             if let Some(record) = user_record {
-        //                 // TODO this will cause issues with created at and other timestamps
-        //                 let user = User::new(&record.username, &record.password, &record.email);
-        //                 return Ok(user);
-        //             } else {
-        //                 return Err(RepositoryError::NotFound);
-        //             }
-        //         }
-        //         Err(surreal_error) => {
-        //             println!("Error while finding user by email:\n{}", surreal_error);
-        //             return Err(RepositoryError::QueryFail);
-        //         }
-        //     }
     }
 
-    async fn store_user(&self, user: &User) -> Result<UserRecordId, RepositoryError> {
-        let query_result: Result<Vec<SurrealUserRecord>, surrealdb::Error> =
-            self.database.create("user").content(&user).await;
+    async fn store_user(&self, user: &User) -> Result<(), Box<dyn Error>> {
+        self.database
+            .create::<Vec<SurrealUserRecord>>("user")
+            .content(&user)
+            .await?;
 
-        match query_result {
-            Ok(user) => Ok(user[0].id.id.to_raw()),
-
-            Err(e) => {
-                println!("Surreal DB failed to store session: {}", e);
-                Err(RepositoryError::QueryFail)
-            }
-        }
+        Ok(())
     }
 }
 

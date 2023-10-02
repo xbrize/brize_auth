@@ -32,6 +32,7 @@ pub async fn register_user<T: UserRepository>(
     password: &str,
     email: &str,
 ) -> Option<UserRecordId> {
+    // TODO this does not cover the case of a db error. Needs a rewrite
     match repository.find_user_by_email(email).await {
         Ok(user_record) => {
             println!("User {} Already Exists", user_record.email);
@@ -39,16 +40,9 @@ pub async fn register_user<T: UserRepository>(
         }
         Err(_) => {
             let user = User::new(username, password, email);
-            match repository.store_user(&user).await {
-                Ok(record_id) => {
-                    println!("User Has Been Created");
-                    return Some(record_id);
-                }
-                Err(e) => {
-                    println!("Register user failed:{:#?}", e);
-                    return None;
-                }
-            };
+            repository.store_user(&user).await.unwrap();
+
+            return Some(user.id);
         }
     };
 }

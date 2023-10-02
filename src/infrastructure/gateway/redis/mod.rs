@@ -23,7 +23,7 @@ impl RedisGateway {
 impl SessionRepository for RedisGateway {
     async fn store_session(&mut self, session: &Session) -> Result<(), Box<dyn Error>> {
         let session_json = serde_json::to_string(&session)?;
-        let setter = self.conn.set(&session.id, session_json).await?;
+        self.conn.set(&session.id, session_json).await?;
         Ok(())
     }
 

@@ -1,6 +1,6 @@
 use crate::{
-    application::{login_user, register_user, start_session, validate_session},
-    domain::{Expiry, SessionRecordId, SessionState},
+    application::{login_user, register_user, start_session},
+    domain::{Expiry, SessionRecordId},
     infrastructure::SurrealGateway,
 };
 
