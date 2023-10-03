@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use crate::{
-    application::{SessionRepository, UserRepository},
+    application::{Authenticate, SessionRepository, UserRepository},
     domain::{Session, SessionRecordId, User},
 };
 use sqlx::mysql::MySqlPool;
@@ -48,6 +48,23 @@ impl MySqlGateway {
         .execute(&self.pool)
         .await
         .unwrap();
+    }
+
+    pub async fn register(&self, fields: Vec<(&str, &str)>) -> Result<(), Box<dyn Error>> {
+        let mut sql = String::from("INSERT INTO users SET");
+        for (index, field) in fields.iter().enumerate() {
+            if index == fields.len() - 1 {
+                let set_clause = format!(" {} = '{}'", field.0, field.1);
+                sql.push_str(&set_clause);
+            } else {
+                let set_clause = format!(" {} = '{}',", field.0, field.1);
+                sql.push_str(&set_clause);
+            }
+        }
+
+        sqlx::query(&sql).execute(&self.pool).await?;
+
+        Ok(())
     }
 }
 
@@ -128,6 +145,17 @@ impl UserRepository for MySqlGateway {
         .await?;
 
         Ok(user)
+    }
+}
+
+impl Authenticate for MySqlGateway {
+    fn register(fields: Vec<(&str, &str)>) -> bool {
+        let mut sql = String::from("INSERT INTO users SET ");
+        for field in fields {
+            let set_clause = format!("{} = {}", field.0, field.1);
+            sql.push_str(&set_clause);
+        }
+        true
     }
 }
 
