@@ -3,8 +3,9 @@ use std::error::Error;
 use crate::{
     application::{Authenticate, SessionRepository, UserRepository},
     domain::{Session, SessionRecordId, User},
+    infrastructure::gateway::sql,
 };
-use sqlx::mysql::MySqlPool;
+use sqlx::{mysql::MySqlPool, query_builder};
 
 pub struct MySqlGateway {
     pub pool: MySqlPool,
@@ -148,13 +149,41 @@ impl UserRepository for MySqlGateway {
     }
 }
 
+#[async_trait::async_trait]
 impl Authenticate for MySqlGateway {
-    fn register(fields: Vec<(&str, &str)>) -> bool {
-        let mut sql = String::from("INSERT INTO users SET ");
-        for field in fields {
-            let set_clause = format!("{} = {}", field.0, field.1);
-            sql.push_str(&set_clause);
+    async fn register(&self, fields: Vec<(&str, &str)>) -> bool {
+        let mut insert_statement = String::from("INSERT INTO users (");
+        let mut values_statement = String::from("VALUES (");
+
+        for (index, field) in fields.iter().enumerate() {
+            let is_last_field = fields.len() - 1 == index;
+
+            if is_last_field {
+                let column_name = format!("{});", field.0);
+                insert_statement.push_str(&column_name);
+
+                values_statement.push_str("?);");
+            } else {
+                let column_name = format!("{},", field.0);
+                insert_statement.push_str(&column_name);
+
+                values_statement.push_str("?,");
+            }
         }
+
+        let sql = format!("{},{}", insert_statement, values_statement);
+        let mut query_builder = query_builder::QueryBuilder::new(sql);
+
+        for field in fields {
+            query_builder.push_bind(field.1);
+        }
+
+        let query = query_builder.build();
+        query.execute(&self.pool).await;
+
+        dbg!(insert_statement, values_statement);
+
+        // let query_builder = sqlx::query(sql)
         true
     }
 }
