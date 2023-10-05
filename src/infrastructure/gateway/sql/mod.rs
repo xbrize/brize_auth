@@ -1,11 +1,11 @@
-use std::error::Error;
+use std::{error::Error, fmt::format};
 
 use crate::{
     application::{Authenticate, SessionRepository, UserRepository},
     domain::{Session, SessionRecordId, User},
     infrastructure::gateway::sql,
 };
-use sqlx::{mysql::MySqlPool, query_builder};
+use sqlx::{mysql::MySqlPool, query_builder, Execute, MySql, QueryBuilder};
 
 pub struct MySqlGateway {
     pub pool: MySqlPool,
@@ -49,23 +49,6 @@ impl MySqlGateway {
         .execute(&self.pool)
         .await
         .unwrap();
-    }
-
-    pub async fn register(&self, fields: Vec<(&str, &str)>) -> Result<(), Box<dyn Error>> {
-        let mut sql = String::from("INSERT INTO users SET");
-        for (index, field) in fields.iter().enumerate() {
-            if index == fields.len() - 1 {
-                let set_clause = format!(" {} = '{}'", field.0, field.1);
-                sql.push_str(&set_clause);
-            } else {
-                let set_clause = format!(" {} = '{}',", field.0, field.1);
-                sql.push_str(&set_clause);
-            }
-        }
-
-        sqlx::query(&sql).execute(&self.pool).await?;
-
-        Ok(())
     }
 }
 
@@ -151,39 +134,61 @@ impl UserRepository for MySqlGateway {
 
 #[async_trait::async_trait]
 impl Authenticate for MySqlGateway {
-    async fn register(&self, fields: Vec<(&str, &str)>) -> bool {
+    async fn register(&self, fields: Vec<(&str, &str)>, unique_fields: Vec<&str>) -> bool {
+        // TODO lookup unique fields first
+        // let mut where_clause = String::from("WHERE");
+        // for (index, unique_field) in unique_fields.iter().enumerate() {
+        //     let is_last_field = unique_fields.len() - 1 == index;
+
+        //     if is_last_field {
+        //         let field_name = format!("{} = ?;", unique_field);
+        //         where_clause.push_str(&field_name);
+        //     } else {
+        //         let field_name = format!("{} = ? OR", unique_field);
+        //         where_clause.push_str(&field_name);
+        //     }
+        // }
+
+        // let sql = format!("SELECT 1 FROM users {}", where_clause);
+        // let mut query_builder = query_builder::QueryBuilder::new(sql);
+
+        // for field in fields.iter() {
+        //     query_builder.push_bind(field.1);
+        // }
+
+        // let query = query_builder.build();
+        // let qiz = query.execute(&self.pool).await;
+        // dbg!(qiz);
+
+        // ------------------------
         let mut insert_statement = String::from("INSERT INTO users (");
-        let mut values_statement = String::from("VALUES (");
 
         for (index, field) in fields.iter().enumerate() {
             let is_last_field = fields.len() - 1 == index;
 
             if is_last_field {
-                let column_name = format!("{});", field.0);
+                let column_name = format!("{})", field.0);
                 insert_statement.push_str(&column_name);
-
-                values_statement.push_str("?);");
             } else {
                 let column_name = format!("{},", field.0);
                 insert_statement.push_str(&column_name);
-
-                values_statement.push_str("?,");
             }
         }
 
-        let sql = format!("{},{}", insert_statement, values_statement);
-        let mut query_builder = query_builder::QueryBuilder::new(sql);
+        let start_statement = format!("{} VALUES (", insert_statement);
+        let mut query_builder: QueryBuilder<MySql> =
+            query_builder::QueryBuilder::new(start_statement);
+
+        let mut seperated = query_builder.separated(", ");
 
         for field in fields {
-            query_builder.push_bind(field.1);
+            seperated.push_bind(field.1);
         }
+        seperated.push_unseparated(");");
 
         let query = query_builder.build();
-        query.execute(&self.pool).await;
+        query.execute(&self.pool).await.unwrap();
 
-        dbg!(insert_statement, values_statement);
-
-        // let query_builder = sqlx::query(sql)
         true
     }
 }
