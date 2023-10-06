@@ -98,6 +98,27 @@ impl SessionRepository for MySqlGateway {
 #[async_trait::async_trait]
 impl UserRepository for MySqlGateway {
     async fn store_user(&self, user: &User) -> Result<(), Box<dyn Error>> {
+        // TODO maybe a way to do this
+        // use serde::{Deserialize, Serialize};
+        // use serde_json::Value;
+
+        // #[derive(Serialize, Deserialize)]
+        // struct Person {
+        //     name: String,
+        //     age: u8,
+        // }
+
+        // let person = Person {
+        //     name: "Alice".to_string(),
+        //     age: 30,
+        // };
+        // let value: Value = serde_json::to_value(&person).unwrap();
+
+        // if let Value::Object(map) = value {
+        //     for (key, val) in map {
+        //         println!("{}: {}", key, val);
+        //     }
+        // }
         sqlx::query(
             r#"
             INSERT INTO users (id, username, password, email)
@@ -133,7 +154,10 @@ impl UserRepository for MySqlGateway {
 
 #[async_trait::async_trait]
 impl Authenticate for MySqlGateway {
-    async fn check_for_unique_fields(&self, fields: &Vec<(&str, &str, bool)>) -> bool {
+    async fn check_for_unique_fields(
+        &self,
+        fields: &Vec<(&str, &str, bool)>,
+    ) -> Result<bool, Box<dyn Error>> {
         let mut where_query_builder: QueryBuilder<MySql> =
             QueryBuilder::new("SELECT 1 FROM users WHERE ");
 
@@ -154,18 +178,18 @@ impl Authenticate for MySqlGateway {
         }
 
         let where_sql = where_query_builder.build_query_scalar::<i64>();
-        let res_sql = where_sql.fetch_one(&self.pool).await.unwrap();
+        let res_sql = where_sql.fetch_one(&self.pool).await?;
 
         if res_sql > 0 {
-            return false;
+            return Ok(false);
         }
 
-        true
+        Ok(true)
     }
 
-    async fn register(&self, fields: Vec<(&str, &str, bool)>) -> bool {
-        if !self.check_for_unique_fields(&fields).await {
-            return false;
+    async fn register(&self, fields: Vec<(&str, &str, bool)>) -> Result<bool, Box<dyn Error>> {
+        if !self.check_for_unique_fields(&fields).await? {
+            return Ok(false);
         }
 
         let mut insert_statement = String::from("INSERT INTO users (");
@@ -195,9 +219,9 @@ impl Authenticate for MySqlGateway {
         seperated.push_unseparated(");");
 
         let query = query_builder.build();
-        query.execute(&self.pool).await.unwrap();
+        query.execute(&self.pool).await?;
 
-        true
+        Ok(true)
     }
 }
 

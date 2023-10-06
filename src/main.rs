@@ -20,7 +20,7 @@ async fn main() {
         ("email", "email@gmail.com", true),
     ];
 
-    repo.register(fields).await;
+    repo.register(fields).await.unwrap();
     let user = repo.find_user_by_email("email@gmail.com").await.unwrap();
     dbg!(user);
 }
