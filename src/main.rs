@@ -12,27 +12,15 @@ async fn main() {
     let repo = MySqlGateway::new(url).await;
     // repo.create_user_table().await;
 
-    // let shit = sqlx::query(
-    //     r#"
-    //     SELECT * FROM users;
-    //     "#,
-    // )
-    // .execute(&repo.pool)
-    // .await
-    // .unwrap();
-
-    // dbg!(shit);
-
     let binding = uuid::Uuid::new_v4().to_string();
     let fields = vec![
-        ("id", binding.as_str()),
-        ("username", "jon"),
-        ("password", "password"),
-        ("email", "email@gmail.com"),
+        ("id", binding.as_str(), true),
+        ("username", "jon", true),
+        ("password", "password", false),
+        ("email", "email@gmail.com", true),
     ];
-    let unique_fields = vec!["user_name", "password", "email"];
 
-    repo.register(fields, unique_fields).await;
+    repo.register(fields).await;
     let user = repo.find_user_by_email("email@gmail.com").await.unwrap();
     dbg!(user);
 }

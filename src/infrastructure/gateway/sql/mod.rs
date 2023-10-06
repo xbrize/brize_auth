@@ -3,7 +3,6 @@ use std::{error::Error, fmt::format};
 use crate::{
     application::{Authenticate, SessionRepository, UserRepository},
     domain::{Session, SessionRecordId, User},
-    infrastructure::gateway::sql,
 };
 use sqlx::{mysql::MySqlPool, query_builder, Execute, MySql, QueryBuilder};
 
@@ -134,43 +133,52 @@ impl UserRepository for MySqlGateway {
 
 #[async_trait::async_trait]
 impl Authenticate for MySqlGateway {
-    async fn register(&self, fields: Vec<(&str, &str)>, unique_fields: Vec<&str>) -> bool {
-        // TODO lookup unique fields first
-        // let mut where_clause = String::from("WHERE");
-        // for (index, unique_field) in unique_fields.iter().enumerate() {
-        //     let is_last_field = unique_fields.len() - 1 == index;
+    async fn check_for_unique_fields(&self, fields: &Vec<(&str, &str, bool)>) -> bool {
+        let mut where_query_builder: QueryBuilder<MySql> =
+            QueryBuilder::new("SELECT 1 FROM users WHERE ");
 
-        //     if is_last_field {
-        //         let field_name = format!("{} = ?;", unique_field);
-        //         where_clause.push_str(&field_name);
-        //     } else {
-        //         let field_name = format!("{} = ? OR", unique_field);
-        //         where_clause.push_str(&field_name);
-        //     }
-        // }
+        for (index, field) in fields.iter().enumerate() {
+            let (key, value, is_unique) = field;
 
-        // let sql = format!("SELECT 1 FROM users {}", where_clause);
-        // let mut query_builder = query_builder::QueryBuilder::new(sql);
+            if *is_unique {
+                if index == 0 {
+                    let f = format!("{key} = ");
+                    where_query_builder.push(f);
+                    where_query_builder.push_bind(value);
+                } else {
+                    let f = format!(" OR {key} = ");
+                    where_query_builder.push(f);
+                    where_query_builder.push_bind(value);
+                }
+            }
+        }
 
-        // for field in fields.iter() {
-        //     query_builder.push_bind(field.1);
-        // }
+        let where_sql = where_query_builder.build_query_scalar::<i64>();
+        let res_sql = where_sql.fetch_one(&self.pool).await.unwrap();
 
-        // let query = query_builder.build();
-        // let qiz = query.execute(&self.pool).await;
-        // dbg!(qiz);
+        if res_sql > 0 {
+            return false;
+        }
 
-        // ------------------------
+        true
+    }
+
+    async fn register(&self, fields: Vec<(&str, &str, bool)>) -> bool {
+        if !self.check_for_unique_fields(&fields).await {
+            return false;
+        }
+
         let mut insert_statement = String::from("INSERT INTO users (");
 
         for (index, field) in fields.iter().enumerate() {
+            let key = field.0;
             let is_last_field = fields.len() - 1 == index;
 
             if is_last_field {
-                let column_name = format!("{})", field.0);
+                let column_name = format!("{})", key);
                 insert_statement.push_str(&column_name);
             } else {
-                let column_name = format!("{},", field.0);
+                let column_name = format!("{},", key);
                 insert_statement.push_str(&column_name);
             }
         }
