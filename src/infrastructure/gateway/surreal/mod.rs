@@ -6,7 +6,7 @@ use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
 use crate::application::{SessionRepository, UserRepository};
-use crate::domain::{Session, SessionRecordId, User};
+use crate::domain::{Credentials, Session, SessionRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
@@ -87,7 +87,7 @@ impl SessionRepository for SurrealGateway {
 
 #[async_trait::async_trait]
 impl UserRepository for SurrealGateway {
-    async fn find_user_by_email(&self, email: &str) -> Result<User, Box<dyn Error>> {
+    async fn find_user_by_email(&self, email: &str) -> Result<Credentials, Box<dyn Error>> {
         let sql = "
         SELECT * from user where email = $email
         ";
@@ -101,15 +101,11 @@ impl UserRepository for SurrealGateway {
 
         // TODO do not return password
         let user_record: Vec<SurrealUserRecord> = query_result.take(0).unwrap();
-        let user = User::new(
-            &user_record[0].username,
-            &user_record[0].password,
-            &user_record[0].email,
-        );
+        let user = Credentials::new(&user_record[0].email, &user_record[0].password);
         Ok(user)
     }
 
-    async fn store_user(&self, user: &User) -> Result<(), Box<dyn Error>> {
+    async fn store_user(&self, user: &Credentials) -> Result<(), Box<dyn Error>> {
         self.database
             .create::<Vec<SurrealUserRecord>>("user")
             .content(&user)
@@ -147,7 +143,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_surreal_user_repository() {
-        let username = "test-user-name";
         let password = "test-pass-word";
         let email = "test@email.com";
 
@@ -155,7 +150,7 @@ mod tests {
         let user_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
         // Create new user
-        let user = User::new(username, password, email);
+        let user = Credentials::new(email, password);
         user_repo.store_user(&user).await.unwrap();
 
         // Test getting user

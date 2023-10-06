@@ -1,6 +1,6 @@
 use crate::{
     application::UserRepository,
-    domain::{User, UserRecordId},
+    domain::{Credentials, CredentialsId},
 };
 
 // TODO log out user command
@@ -8,7 +8,7 @@ pub async fn login_user<T: UserRepository>(
     repository: &T,
     email: &str,
     password: &str,
-) -> Option<UserRecordId> {
+) -> Option<CredentialsId> {
     match repository.find_user_by_email(&email).await {
         Ok(user_record) => {
             if user_record.match_password(password) {
@@ -31,15 +31,15 @@ pub async fn register_user<T: UserRepository>(
     username: &str,
     password: &str,
     email: &str,
-) -> Option<UserRecordId> {
+) -> Option<CredentialsId> {
     // TODO this does not cover the case of a db error. Needs a rewrite
     match repository.find_user_by_email(email).await {
         Ok(user_record) => {
-            println!("User {} Already Exists", user_record.email);
+            println!("Credentials {} Already Exists", user_record.email);
             return None;
         }
         Err(_) => {
-            let user = User::new(username, password, email);
+            let user = Credentials::new(email, password);
             repository.store_user(&user).await.unwrap();
 
             return Some(user.id);

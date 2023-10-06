@@ -2,7 +2,7 @@ use std::{error::Error, fmt::format};
 
 use crate::{
     application::{Authenticate, SessionRepository, UserRepository},
-    domain::{Session, SessionRecordId, User},
+    domain::{Credentials, Session, SessionRecordId},
 };
 use sqlx::{mysql::MySqlPool, query_builder, Execute, MySql, QueryBuilder};
 
@@ -97,17 +97,16 @@ impl SessionRepository for MySqlGateway {
 
 #[async_trait::async_trait]
 impl UserRepository for MySqlGateway {
-    async fn store_user(&self, user: &User) -> Result<(), Box<dyn Error>> {
+    async fn store_user(&self, user: &Credentials) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             r#"
-            INSERT INTO users (id, username, password, email)
-            VALUES (?, ?, ?, ?);
+            INSERT INTO users (id, email, password)
+            VALUES (?, ?, ?);
             "#,
         )
         .bind(&user.id)
-        .bind(&user.username) // Converting usize to i64 for compatibility
-        .bind(&user.password)
         .bind(&user.email)
+        .bind(&user.password)
         .execute(&self.pool)
         .await?;
 
@@ -148,8 +147,8 @@ impl UserRepository for MySqlGateway {
     }
 
     // TODO scrub out user's password
-    async fn find_user_by_email(&self, email: &str) -> Result<User, Box<dyn Error>> {
-        let user: User = sqlx::query_as(
+    async fn find_user_by_email(&self, email: &str) -> Result<Credentials, Box<dyn Error>> {
+        let user: Credentials = sqlx::query_as(
             r#"
             SELECT id, username, email, password
             FROM users
@@ -236,7 +235,7 @@ mod tests {
         let email = "test@email.com";
 
         // Create new user
-        let user = User::new(username, password, email);
+        let user = Credentials::new(email, password);
         repo.store_user(&user).await.unwrap();
 
         // Test getting user
