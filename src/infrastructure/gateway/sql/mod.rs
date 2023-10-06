@@ -98,27 +98,6 @@ impl SessionRepository for MySqlGateway {
 #[async_trait::async_trait]
 impl UserRepository for MySqlGateway {
     async fn store_user(&self, user: &User) -> Result<(), Box<dyn Error>> {
-        // TODO maybe a way to do this
-        // use serde::{Deserialize, Serialize};
-        // use serde_json::Value;
-
-        // #[derive(Serialize, Deserialize)]
-        // struct Person {
-        //     name: String,
-        //     age: u8,
-        // }
-
-        // let person = Person {
-        //     name: "Alice".to_string(),
-        //     age: 30,
-        // };
-        // let value: Value = serde_json::to_value(&person).unwrap();
-
-        // if let Value::Object(map) = value {
-        //     for (key, val) in map {
-        //         println!("{}: {}", key, val);
-        //     }
-        // }
         sqlx::query(
             r#"
             INSERT INTO users (id, username, password, email)
@@ -135,25 +114,6 @@ impl UserRepository for MySqlGateway {
         Ok(())
     }
 
-    // TODO scrub out user's password
-    async fn find_user_by_email(&self, email: &str) -> Result<User, Box<dyn Error>> {
-        let user: User = sqlx::query_as(
-            r#"
-            SELECT id, username, email, password
-            FROM users
-            WHERE email = ?
-            "#,
-        )
-        .bind(email)
-        .fetch_one(&self.pool)
-        .await?;
-
-        Ok(user)
-    }
-}
-
-#[async_trait::async_trait]
-impl Authenticate for MySqlGateway {
     async fn check_for_unique_fields(
         &self,
         fields: &Vec<(&str, &str, bool)>,
@@ -187,6 +147,25 @@ impl Authenticate for MySqlGateway {
         Ok(true)
     }
 
+    // TODO scrub out user's password
+    async fn find_user_by_email(&self, email: &str) -> Result<User, Box<dyn Error>> {
+        let user: User = sqlx::query_as(
+            r#"
+            SELECT id, username, email, password
+            FROM users
+            WHERE email = ?
+            "#,
+        )
+        .bind(email)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(user)
+    }
+}
+
+#[async_trait::async_trait]
+impl Authenticate for MySqlGateway {
     async fn register(&self, fields: Vec<(&str, &str, bool)>) -> Result<bool, Box<dyn Error>> {
         if !self.check_for_unique_fields(&fields).await? {
             return Ok(false);

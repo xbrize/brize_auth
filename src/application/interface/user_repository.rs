@@ -15,6 +15,10 @@ pub struct UserRecord {
 #[async_trait]
 pub trait UserRepository {
     async fn find_user_by_email(&self, user_email: &str) -> Result<User, Box<dyn Error>>;
+    async fn check_for_unique_fields(
+        &self,
+        fields: &Vec<(&str, &str, bool)>,
+    ) -> Result<bool, Box<dyn Error>>;
     // async fn find_user_by_username(&self, user_email: &str) -> Result<UserRecord, RepositoryError>;
     // async fn find_user_by_id(&self, user_email: &str) -> Result<UserRecord, RepositoryError>;
 

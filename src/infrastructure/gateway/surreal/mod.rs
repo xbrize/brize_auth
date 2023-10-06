@@ -117,6 +117,13 @@ impl UserRepository for SurrealGateway {
 
         Ok(())
     }
+
+    async fn check_for_unique_fields(
+        &self,
+        fields: &Vec<(&str, &str, bool)>,
+    ) -> Result<bool, Box<dyn Error>> {
+        Ok(true)
+    }
 }
 
 #[cfg(test)]
