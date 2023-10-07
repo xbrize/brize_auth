@@ -5,8 +5,8 @@ use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
-use crate::application::{SessionRepository, UserRepository};
-use crate::domain::{Credentials, Session, SessionRecordId};
+use crate::application::{CredentialsRepository, SessionRepository};
+use crate::domain::{Credentials, CredentialsId, Session, SessionRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
@@ -86,8 +86,11 @@ impl SessionRepository for SurrealGateway {
 }
 
 #[async_trait::async_trait]
-impl UserRepository for SurrealGateway {
-    async fn find_user_by_email(&self, email: &str) -> Result<Credentials, Box<dyn Error>> {
+impl CredentialsRepository for SurrealGateway {
+    async fn find_credentials_by_unique_identifier(
+        &self,
+        email: &str,
+    ) -> Result<Credentials, Box<dyn Error>> {
         let sql = "
         SELECT * from user where email = $email
         ";
@@ -105,20 +108,23 @@ impl UserRepository for SurrealGateway {
         Ok(user)
     }
 
-    async fn store_user(&self, user: &Credentials) -> Result<(), Box<dyn Error>> {
+    async fn find_credentials_by_id(
+        &self,
+        credentials_id: &str,
+    ) -> Result<Credentials, Box<dyn Error>> {
+        Ok(Credentials::new("email", "password"))
+    }
+
+    async fn insert_credentials(
+        &self,
+        user: &Credentials,
+    ) -> Result<CredentialsId, Box<dyn Error>> {
         self.database
             .create::<Vec<SurrealUserRecord>>("user")
             .content(&user)
             .await?;
 
-        Ok(())
-    }
-
-    async fn check_for_unique_fields(
-        &self,
-        fields: &Vec<(&str, &str, bool)>,
-    ) -> Result<bool, Box<dyn Error>> {
-        Ok(true)
+        Ok(String::from("hello"))
     }
 }
 
@@ -151,11 +157,14 @@ mod tests {
 
         // Create new user
         let user = Credentials::new(email, password);
-        user_repo.store_user(&user).await.unwrap();
+        user_repo.insert_credentials(&user).await.unwrap();
 
         // Test getting user
-        let user_record = user_repo.find_user_by_email(email).await.unwrap();
+        let user_record = user_repo
+            .find_credentials_by_unique_identifier(email)
+            .await
+            .unwrap();
         dbg!(&user_record);
-        assert_eq!(user_record.email, email);
+        assert_eq!(user_record.unique_identifier, email);
     }
 }

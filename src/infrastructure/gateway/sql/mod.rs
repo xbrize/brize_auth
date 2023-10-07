@@ -1,8 +1,8 @@
 use std::{error::Error, fmt::format};
 
 use crate::{
-    application::{Authenticate, SessionRepository, UserRepository},
-    domain::{Credentials, Session, SessionRecordId},
+    application::{Authenticate, CredentialsRepository, SessionRepository},
+    domain::{Credentials, CredentialsId, Session, SessionRecordId},
 };
 use sqlx::{mysql::MySqlPool, query_builder, Execute, MySql, QueryBuilder};
 
@@ -96,58 +96,70 @@ impl SessionRepository for MySqlGateway {
 }
 
 #[async_trait::async_trait]
-impl UserRepository for MySqlGateway {
-    async fn store_user(&self, user: &Credentials) -> Result<(), Box<dyn Error>> {
+impl CredentialsRepository for MySqlGateway {
+    async fn insert_credentials(
+        &self,
+        credentials: &Credentials,
+    ) -> Result<CredentialsId, Box<dyn Error>> {
         sqlx::query(
             r#"
             INSERT INTO users (id, email, password)
             VALUES (?, ?, ?);
             "#,
         )
-        .bind(&user.id)
-        .bind(&user.email)
-        .bind(&user.password)
+        .bind(&credentials.credentials_id)
+        .bind(&credentials.unique_identifier)
+        .bind(&credentials.hashed_password)
         .execute(&self.pool)
         .await?;
 
-        Ok(())
+        Ok(String::from("hello"))
     }
-
-    async fn check_for_unique_fields(
+    async fn find_credentials_by_id(
         &self,
-        fields: &Vec<(&str, &str, bool)>,
-    ) -> Result<bool, Box<dyn Error>> {
-        let mut where_query_builder: QueryBuilder<MySql> =
-            QueryBuilder::new("SELECT 1 FROM users WHERE ");
-
-        for (index, field) in fields.iter().enumerate() {
-            let (key, value, is_unique) = field;
-
-            if *is_unique {
-                if index == 0 {
-                    let f = format!("{key} = ");
-                    where_query_builder.push(f);
-                    where_query_builder.push_bind(value);
-                } else {
-                    let f = format!(" OR {key} = ");
-                    where_query_builder.push(f);
-                    where_query_builder.push_bind(value);
-                }
-            }
-        }
-
-        let where_sql = where_query_builder.build_query_scalar::<i64>();
-        let res_sql = where_sql.fetch_one(&self.pool).await?;
-
-        if res_sql > 0 {
-            return Ok(false);
-        }
-
-        Ok(true)
+        credentials_id: &str,
+    ) -> Result<Credentials, Box<dyn Error>> {
+        Ok(Credentials::new("email", "password"))
     }
+
+    // async fn check_for_unique_fields(
+    //     &self,
+    //     fields: &Vec<(&str, &str, bool)>,
+    // ) -> Result<bool, Box<dyn Error>> {
+    //     let mut where_query_builder: QueryBuilder<MySql> =
+    //         QueryBuilder::new("SELECT 1 FROM users WHERE ");
+
+    //     for (index, field) in fields.iter().enumerate() {
+    //         let (key, value, is_unique) = field;
+
+    //         if *is_unique {
+    //             if index == 0 {
+    //                 let f = format!("{key} = ");
+    //                 where_query_builder.push(f);
+    //                 where_query_builder.push_bind(value);
+    //             } else {
+    //                 let f = format!(" OR {key} = ");
+    //                 where_query_builder.push(f);
+    //                 where_query_builder.push_bind(value);
+    //             }
+    //         }
+    //     }
+
+    //     let where_sql = where_query_builder.build_query_scalar::<i64>();
+    //     let res_sql = where_sql.fetch_one(&self.pool).await?;
+
+    //     if res_sql > 0 {
+    //         return Ok(false);
+    //     }
+
+    //     Ok(true)
+    // }
 
     // TODO scrub out user's password
-    async fn find_user_by_email(&self, email: &str) -> Result<Credentials, Box<dyn Error>> {
+    async fn find_credentials_by_unique_identifier(
+        &self,
+        email: &str,
+    ) -> Result<Credentials, Box<dyn Error>> {
         let user: Credentials = sqlx::query_as(
             r#"
             SELECT id, username, email, password
@@ -166,10 +178,6 @@ impl UserRepository for MySqlGateway {
 #[async_trait::async_trait]
 impl Authenticate for MySqlGateway {
     async fn register(&self, fields: Vec<(&str, &str, bool)>) -> Result<bool, Box<dyn Error>> {
-        if !self.check_for_unique_fields(&fields).await? {
-            return Ok(false);
-        }
-
         let mut insert_statement = String::from("INSERT INTO users (");
 
         for (index, field) in fields.iter().enumerate() {
@@ -236,11 +244,14 @@ mod tests {
 
         // Create new user
         let user = Credentials::new(email, password);
-        repo.store_user(&user).await.unwrap();
+        repo.insert_credentials(&user).await.unwrap();
 
         // Test getting user
-        let user_record = repo.find_user_by_email(email).await.unwrap();
+        let user_record = repo
+            .find_credentials_by_unique_identifier(email)
+            .await
+            .unwrap();
         dbg!(&user_record);
-        assert_eq!(user_record.email, email);
+        assert_eq!(user_record.unique_identifier, email);
     }
 }

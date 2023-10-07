@@ -1,5 +1,5 @@
 use brize_auth::{
-    application::{Authenticate, SessionRepository, UserRepository},
+    application::{Authenticate, CredentialsRepository, SessionRepository},
     domain::{Expiry, Session},
     infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
 };
@@ -21,6 +21,9 @@ async fn main() {
     ];
 
     repo.register(fields).await.unwrap();
-    let user = repo.find_user_by_email("email@gmail.com").await.unwrap();
+    let user = repo
+        .find_credentials_by_unique_identifier("email@gmail.com")
+        .await
+        .unwrap();
     dbg!(user);
 }

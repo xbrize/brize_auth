@@ -1,19 +1,22 @@
 use crate::{
-    application::UserRepository,
+    application::CredentialsRepository,
     domain::{Credentials, CredentialsId},
 };
 
 // TODO log out user command
-pub async fn login_user<T: UserRepository>(
+pub async fn login_user<T: CredentialsRepository>(
     repository: &T,
     email: &str,
     password: &str,
 ) -> Option<CredentialsId> {
-    match repository.find_user_by_email(&email).await {
+    match repository
+        .find_credentials_by_unique_identifier(&email)
+        .await
+    {
         Ok(user_record) => {
             if user_record.match_password(password) {
                 println!("Login Successful");
-                return Some(user_record.id);
+                return Some(user_record.unique_identifier);
             } else {
                 println!("Password Did Not Match");
                 return None;
@@ -26,23 +29,29 @@ pub async fn login_user<T: UserRepository>(
     }
 }
 
-pub async fn register_user<T: UserRepository>(
+pub async fn register_user<T: CredentialsRepository>(
     repository: &T,
     username: &str,
     password: &str,
     email: &str,
 ) -> Option<CredentialsId> {
     // TODO this does not cover the case of a db error. Needs a rewrite
-    match repository.find_user_by_email(email).await {
+    match repository
+        .find_credentials_by_unique_identifier(email)
+        .await
+    {
         Ok(user_record) => {
-            println!("Credentials {} Already Exists", user_record.email);
+            println!(
+                "Credentials {} Already Exists",
+                user_record.unique_identifier
+            );
             return None;
         }
         Err(_) => {
             let user = Credentials::new(email, password);
-            repository.store_user(&user).await.unwrap();
+            repository.insert_credentials(&user).await.unwrap();
 
-            return Some(user.id);
+            return Some(user.unique_identifier);
         }
     };
 }
