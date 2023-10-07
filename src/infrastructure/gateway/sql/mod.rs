@@ -1,7 +1,7 @@
 use std::{error::Error, fmt::format};
 
 use crate::{
-    application::{Authenticate, CredentialsRepository, SessionRepository},
+    application::{CredentialsRepository, SessionRepository},
     domain::{Credentials, CredentialsId, Session, SessionRecordId},
 };
 use sqlx::{mysql::MySqlPool, query_builder, Execute, MySql, QueryBuilder};
@@ -142,42 +142,6 @@ impl CredentialsRepository for MySqlGateway {
         .await?;
 
         Ok(creds)
-    }
-}
-
-#[async_trait::async_trait]
-impl Authenticate for MySqlGateway {
-    async fn register(&self, fields: Vec<(&str, &str, bool)>) -> Result<bool, Box<dyn Error>> {
-        let mut insert_statement = String::from("INSERT INTO users (");
-
-        for (index, field) in fields.iter().enumerate() {
-            let key = field.0;
-            let is_last_field = fields.len() - 1 == index;
-
-            if is_last_field {
-                let column_name = format!("{})", key);
-                insert_statement.push_str(&column_name);
-            } else {
-                let column_name = format!("{},", key);
-                insert_statement.push_str(&column_name);
-            }
-        }
-
-        let start_statement = format!("{} VALUES (", insert_statement);
-        let mut query_builder: QueryBuilder<MySql> =
-            query_builder::QueryBuilder::new(start_statement);
-
-        let mut seperated = query_builder.separated(", ");
-
-        for field in fields {
-            seperated.push_bind(field.1);
-        }
-        seperated.push_unseparated(");");
-
-        let query = query_builder.build();
-        query.execute(&self.pool).await?;
-
-        Ok(true)
     }
 }
 

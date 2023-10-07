@@ -19,13 +19,12 @@ pub async fn handle_user_login(email: &str, password: &str) -> Option<SessionRec
 }
 
 pub async fn handle_user_registration(
-    username: &str,
+    user_identity: &str,
     password: &str,
-    email: &str,
 ) -> Option<SessionRecordId> {
     let mut repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
-    match register_user(&repository, username, password, email).await {
+    match register_user(&repository, user_identity, password).await {
         Some(_) => {
             let session_id = start_session(&mut repository, Expiry::Day(1))
                 .await
