@@ -34,14 +34,13 @@ impl MySqlGateway {
         .unwrap();
     }
 
-    pub async fn create_user_table(&self) {
+    pub async fn create_credentials_table(&self) {
         sqlx::query(
             r#"
-            CREATE TABLE users (
-                id CHAR(36) PRIMARY KEY,  
-                username CHAR(36) NOT NULL,
-                password CHAR(36) NOT NULL,
-                email CHAR(36) NOT NULL UNIQUE
+            CREATE TABLE credentials (
+                id CHAR(36) PRIMARY KEY,
+                user_identity CHAR(36) NOT NULL,
+                hashed_password CHAR(36) NOT NULL
             );
             "#,
         )
@@ -97,81 +96,52 @@ impl SessionRepository for MySqlGateway {
 
 #[async_trait::async_trait]
 impl CredentialsRepository for MySqlGateway {
-    async fn insert_credentials(
-        &self,
-        credentials: &Credentials,
-    ) -> Result<CredentialsId, Box<dyn Error>> {
+    async fn insert_credentials(&self, credentials: &Credentials) -> Result<(), Box<dyn Error>> {
         sqlx::query(
             r#"
-            INSERT INTO users (id, email, password)
+            INSERT INTO credentials (id, user_identity, hashed_password)
             VALUES (?, ?, ?);
             "#,
         )
-        .bind(&credentials.credentials_id)
-        .bind(&credentials.unique_identifier)
+        .bind(&credentials.id)
+        .bind(&credentials.user_identity)
         .bind(&credentials.hashed_password)
         .execute(&self.pool)
         .await?;
 
-        Ok(String::from("hello"))
+        Ok(())
     }
-    async fn find_credentials_by_id(
-        &self,
-        credentials_id: &str,
-    ) -> Result<Credentials, Box<dyn Error>> {
-        Ok(Credentials::new("email", "password"))
-    }
-
-    // async fn check_for_unique_fields(
-    //     &self,
-    //     fields: &Vec<(&str, &str, bool)>,
-    // ) -> Result<bool, Box<dyn Error>> {
-    //     let mut where_query_builder: QueryBuilder<MySql> =
-    //         QueryBuilder::new("SELECT 1 FROM users WHERE ");
-
-    //     for (index, field) in fields.iter().enumerate() {
-    //         let (key, value, is_unique) = field;
-
-    //         if *is_unique {
-    //             if index == 0 {
-    //                 let f = format!("{key} = ");
-    //                 where_query_builder.push(f);
-    //                 where_query_builder.push_bind(value);
-    //             } else {
-    //                 let f = format!(" OR {key} = ");
-    //                 where_query_builder.push(f);
-    //                 where_query_builder.push_bind(value);
-    //             }
-    //         }
-    //     }
-
-    //     let where_sql = where_query_builder.build_query_scalar::<i64>();
-    //     let res_sql = where_sql.fetch_one(&self.pool).await?;
-
-    //     if res_sql > 0 {
-    //         return Ok(false);
-    //     }
-
-    //     Ok(true)
-    // }
-
-    // TODO scrub out user's password
-    async fn find_credentials_by_unique_identifier(
-        &self,
-        email: &str,
-    ) -> Result<Credentials, Box<dyn Error>> {
-        let user: Credentials = sqlx::query_as(
+    async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials, Box<dyn Error>> {
+        let creds: Credentials = sqlx::query_as(
             r#"
-            SELECT id, username, email, password
-            FROM users
-            WHERE email = ?
+            SELECT id, user_identity, hashed_password
+            FROM credentials
+            WHERE id = ?
             "#,
         )
-        .bind(email)
+        .bind(id)
         .fetch_one(&self.pool)
         .await?;
 
-        Ok(user)
+        Ok(creds)
+    }
+
+    async fn find_credentials_by_user_identity(
+        &self,
+        user_identity: &str,
+    ) -> Result<Credentials, Box<dyn Error>> {
+        let creds: Credentials = sqlx::query_as(
+            r#"
+            SELECT id, user_identity, hashed_password
+            FROM credentials
+            WHERE user_identity = ?
+            "#,
+        )
+        .bind(user_identity)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(creds)
     }
 }
 
@@ -236,9 +206,8 @@ mod tests {
     async fn test_mysql_user_repo() {
         let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
         let repo = MySqlGateway::new(url).await;
-        repo.create_user_table().await;
+        repo.create_credentials_table().await;
 
-        let username = "test-user-name";
         let password = "test-pass-word";
         let email = "test@email.com";
 
@@ -247,11 +216,8 @@ mod tests {
         repo.insert_credentials(&user).await.unwrap();
 
         // Test getting user
-        let user_record = repo
-            .find_credentials_by_unique_identifier(email)
-            .await
-            .unwrap();
+        let user_record = repo.find_credentials_by_user_identity(email).await.unwrap();
         dbg!(&user_record);
-        assert_eq!(user_record.unique_identifier, email);
+        assert_eq!(user_record.user_identity, email);
     }
 }

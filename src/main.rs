@@ -1,6 +1,6 @@
 use brize_auth::{
     application::{Authenticate, CredentialsRepository, SessionRepository},
-    domain::{Expiry, Session},
+    domain::{Credentials, Expiry, Session},
     infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
 };
 use redis::RedisResult;
@@ -10,20 +10,16 @@ use sqlx::*;
 async fn main() {
     let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
     let repo = MySqlGateway::new(url).await;
-    // repo.create_user_table().await;
+    repo.create_credentials_table().await;
 
-    let binding = uuid::Uuid::new_v4().to_string();
-    let fields = vec![
-        ("id", binding.as_str(), true),
-        ("username", "jon", true),
-        ("password", "password", false),
-        ("email", "email@gmail.com", true),
-    ];
+    let password = "test-pass-word";
+    let email = "test@email.com";
 
-    repo.register(fields).await.unwrap();
-    let user = repo
-        .find_credentials_by_unique_identifier("email@gmail.com")
-        .await
-        .unwrap();
-    dbg!(user);
+    // Create new user
+    let user = Credentials::new(email, password);
+    repo.insert_credentials(&user).await.unwrap();
+
+    // Test getting user
+    let user_record = repo.find_credentials_by_user_identity(email).await.unwrap();
+    dbg!(&user_record);
 }

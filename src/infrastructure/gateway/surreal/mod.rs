@@ -87,7 +87,7 @@ impl SessionRepository for SurrealGateway {
 
 #[async_trait::async_trait]
 impl CredentialsRepository for SurrealGateway {
-    async fn find_credentials_by_unique_identifier(
+    async fn find_credentials_by_user_identity(
         &self,
         email: &str,
     ) -> Result<Credentials, Box<dyn Error>> {
@@ -108,23 +108,17 @@ impl CredentialsRepository for SurrealGateway {
         Ok(user)
     }
 
-    async fn find_credentials_by_id(
-        &self,
-        credentials_id: &str,
-    ) -> Result<Credentials, Box<dyn Error>> {
+    async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials, Box<dyn Error>> {
         Ok(Credentials::new("email", "password"))
     }
 
-    async fn insert_credentials(
-        &self,
-        user: &Credentials,
-    ) -> Result<CredentialsId, Box<dyn Error>> {
+    async fn insert_credentials(&self, user: &Credentials) -> Result<(), Box<dyn Error>> {
         self.database
             .create::<Vec<SurrealUserRecord>>("user")
             .content(&user)
             .await?;
 
-        Ok(String::from("hello"))
+        Ok(())
     }
 }
 
@@ -161,10 +155,10 @@ mod tests {
 
         // Test getting user
         let user_record = user_repo
-            .find_credentials_by_unique_identifier(email)
+            .find_credentials_by_user_identity(email)
             .await
             .unwrap();
         dbg!(&user_record);
-        assert_eq!(user_record.unique_identifier, email);
+        assert_eq!(user_record.user_identity, email);
     }
 }

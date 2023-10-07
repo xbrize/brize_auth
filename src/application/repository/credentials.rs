@@ -1,19 +1,14 @@
-use crate::domain::{Credentials, CredentialsId};
-use serde::{Deserialize, Serialize};
+use crate::domain::Credentials;
 use std::error::Error;
 
 #[async_trait::async_trait]
 pub trait CredentialsRepository {
-    async fn find_credentials_by_unique_identifier(
+    async fn find_credentials_by_user_identity(
         &self,
-        unique_identifier: &str,
+        user_identity: &str,
     ) -> Result<Credentials, Box<dyn Error>>;
 
-    async fn find_credentials_by_id(
-        &self,
-        credentials_id: &str,
-    ) -> Result<Credentials, Box<dyn Error>>;
+    async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials, Box<dyn Error>>;
 
-    async fn insert_credentials(&self, user: &Credentials)
-        -> Result<CredentialsId, Box<dyn Error>>;
+    async fn insert_credentials(&self, credentials: &Credentials) -> Result<(), Box<dyn Error>>;
 }
