@@ -1,10 +1,10 @@
-use std::{error::Error, fmt::format};
+use std::error::Error;
 
 use crate::{
     application::{CredentialsRepository, SessionRepository},
-    domain::{Credentials, CredentialsId, Session, SessionRecordId},
+    domain::{Credentials, Session, SessionRecordId},
 };
-use sqlx::{mysql::MySqlPool, query_builder, Execute, MySql, QueryBuilder};
+use sqlx::mysql::MySqlPool;
 
 pub struct MySqlGateway {
     pub pool: MySqlPool,
@@ -167,7 +167,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_mysql_user_repo() {
+    async fn test_mysql_credentials_repo() {
         let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
         let repo = MySqlGateway::new(url).await;
         repo.create_credentials_table().await;
@@ -175,13 +175,12 @@ mod tests {
         let password = "test-pass-word";
         let email = "test@email.com";
 
-        // Create new user
-        let user = Credentials::new(email, password);
-        repo.insert_credentials(&user).await.unwrap();
+        // Create new credentials
+        let credentials = Credentials::new(email, password);
+        repo.insert_credentials(&credentials).await.unwrap();
 
-        // Test getting user
-        let user_record = repo.find_credentials_by_user_identity(email).await.unwrap();
-        dbg!(&user_record);
-        assert_eq!(user_record.user_identity, email);
+        // Test getting credentials
+        let creds = repo.find_credentials_by_user_identity(email).await.unwrap();
+        assert_eq!(creds.user_identity, email);
     }
 }

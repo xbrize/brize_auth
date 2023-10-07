@@ -6,7 +6,7 @@ use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
 use crate::application::{CredentialsRepository, SessionRepository};
-use crate::domain::{Credentials, CredentialsId, Session, SessionRecordId};
+use crate::domain::{Credentials, Session, SessionRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
@@ -16,11 +16,10 @@ pub struct SurrealSessionRecord {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SurrealUserRecord {
+pub struct SurrealCredentialRecord {
     pub id: Thing,
-    pub username: String,
-    pub email: String,
-    pub password: String,
+    pub user_identity: String,
+    pub hashed_password: String,
 }
 
 pub struct SurrealGateway {
@@ -89,32 +88,44 @@ impl SessionRepository for SurrealGateway {
 impl CredentialsRepository for SurrealGateway {
     async fn find_credentials_by_user_identity(
         &self,
-        email: &str,
+        user_identity: &str,
     ) -> Result<Credentials, Box<dyn Error>> {
         let sql = "
-        SELECT * from user where email = $email
+        SELECT * FROM credentials WHERE user_identity = $user_identity
         ";
 
         let mut query_result = self
             .database
             .query(sql)
-            .bind(("email", email))
-            .await
-            .unwrap();
+            .bind(("user_identity", user_identity))
+            .await?;
 
-        // TODO do not return password
-        let user_record: Vec<SurrealUserRecord> = query_result.take(0).unwrap();
-        let user = Credentials::new(&user_record[0].email, &user_record[0].password);
-        Ok(user)
+        let credentials_record: Vec<SurrealCredentialRecord> = query_result.take(0)?;
+        let credentials = Credentials::new(
+            &credentials_record[0].user_identity,
+            &credentials_record[0].hashed_password,
+        );
+        Ok(credentials)
     }
 
     async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials, Box<dyn Error>> {
-        Ok(Credentials::new("email", "password"))
+        let cred_record: Option<SurrealCredentialRecord> =
+            self.database.select(("session", id)).await?;
+
+        if let Some(record) = cred_record {
+            let cred = Credentials::new(&record.user_identity, &record.hashed_password);
+            return Ok(cred);
+        } else {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "No Credentials record found",
+            )));
+        }
     }
 
     async fn insert_credentials(&self, user: &Credentials) -> Result<(), Box<dyn Error>> {
         self.database
-            .create::<Vec<SurrealUserRecord>>("user")
+            .create::<Vec<SurrealCredentialRecord>>("credentials")
             .content(&user)
             .await?;
 
@@ -142,23 +153,22 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_surreal_user_repository() {
+    async fn test_surreal_creds_repository() {
         let password = "test-pass-word";
         let email = "test@email.com";
 
         // Start database
-        let user_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+        let creds_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
-        // Create new user
-        let user = Credentials::new(email, password);
-        user_repo.insert_credentials(&user).await.unwrap();
+        // Create new creds
+        let creds = Credentials::new(email, password);
+        creds_repo.insert_credentials(&creds).await.unwrap();
 
-        // Test getting user
-        let user_record = user_repo
+        // Test getting creds
+        let user_cred = creds_repo
             .find_credentials_by_user_identity(email)
             .await
             .unwrap();
-        dbg!(&user_record);
-        assert_eq!(user_record.user_identity, email);
+        assert_eq!(user_cred.user_identity, email);
     }
 }
