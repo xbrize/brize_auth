@@ -10,17 +10,23 @@ pub async fn login_user<T: CredentialsRepository>(
     password: &str,
 ) -> Option<CredentialsId> {
     match repository.find_credentials_by_user_identity(&email).await {
-        Ok(user_record) => {
-            if user_record.match_password(password) {
-                println!("Login Successful");
-                return Some(user_record.user_identity);
-            } else {
-                println!("Password Did Not Match");
+        Ok(credentials_query) => match credentials_query {
+            Some(credentials) => {
+                if credentials.match_password(password) {
+                    println!("Login Successful");
+                    return Some(credentials.user_identity);
+                } else {
+                    println!("Password Did Not Match");
+                    return None;
+                }
+            }
+            None => {
+                println!("User Credentials Not Found For Login");
                 return None;
             }
-        }
+        },
         Err(e) => {
-            println!("Login user failed:{:#?}", e);
+            println!("Error Logging In User:{:#?}", e);
             None
         }
     }
@@ -31,20 +37,26 @@ pub async fn register_user<T: CredentialsRepository>(
     user_identity: &str,
     raw_password: &str,
 ) -> Option<CredentialsId> {
-    // TODO this does not cover the case of a db error. Needs a rewrite
     match repository
         .find_credentials_by_user_identity(user_identity)
         .await
     {
-        Ok(user_record) => {
-            println!("Credentials {} Already Exists", user_record.user_identity);
-            return None;
-        }
-        Err(_) => {
-            let credentials = Credentials::new(user_identity, raw_password);
-            repository.insert_credentials(&credentials).await.unwrap();
+        Ok(credentials_query) => match credentials_query {
+            Some(_) => {
+                println!("Credentials Already Exist, User Not Created");
+                return None;
+            }
+            None => {
+                println!("New User Created");
+                let credentials = Credentials::new(user_identity, raw_password);
+                repository.insert_credentials(&credentials).await.unwrap();
 
-            return Some(credentials.id);
+                return Some(credentials.id);
+            }
+        },
+        Err(e) => {
+            println!("Failed to register user:{}", e);
+            return None;
         }
     };
 }

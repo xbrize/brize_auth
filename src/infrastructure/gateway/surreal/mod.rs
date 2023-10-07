@@ -22,6 +22,16 @@ pub struct SurrealCredentialRecord {
     pub hashed_password: String,
 }
 
+impl SurrealCredentialRecord {
+    pub fn into_credentials(&self) -> Credentials {
+        Credentials {
+            id: self.id.id.to_raw(),
+            user_identity: self.user_identity.to_string(),
+            hashed_password: self.hashed_password.to_string(),
+        }
+    }
+}
+
 pub struct SurrealGateway {
     pub database: Surreal<Client>,
 }
@@ -89,23 +99,32 @@ impl CredentialsRepository for SurrealGateway {
     async fn find_credentials_by_user_identity(
         &self,
         user_identity: &str,
-    ) -> Result<Credentials, Box<dyn Error>> {
+    ) -> Result<Option<Credentials>, Box<dyn Error>> {
         let sql = "
         SELECT * FROM credentials WHERE user_identity = $user_identity
         ";
 
-        let mut query_result = self
+        let query_result = self
             .database
             .query(sql)
             .bind(("user_identity", user_identity))
-            .await?;
+            .await;
 
-        let credentials_record: Vec<SurrealCredentialRecord> = query_result.take(0)?;
-        let credentials = Credentials::new(
-            &credentials_record[0].user_identity,
-            &credentials_record[0].hashed_password,
-        );
-        Ok(credentials)
+        match query_result {
+            Ok(mut result) => match result.take::<Vec<SurrealCredentialRecord>>(0) {
+                Ok(take) => {
+                    if take.is_empty() {
+                        println!("User Credentials Not Found");
+                        Ok(None)
+                    } else {
+                        println!("User Credentials Found");
+                        Ok(Some(take[0].into_credentials()))
+                    }
+                }
+                Err(e) => Err(Box::new(e)),
+            },
+            Err(e) => Err(Box::new(e)),
+        }
     }
 
     async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials, Box<dyn Error>> {
@@ -169,6 +188,6 @@ mod tests {
             .find_credentials_by_user_identity(email)
             .await
             .unwrap();
-        assert_eq!(user_cred.user_identity, email);
+        assert_eq!(user_cred.unwrap().user_identity, email);
     }
 }

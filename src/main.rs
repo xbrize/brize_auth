@@ -13,30 +13,18 @@ async fn main() {
     // let repo = MySqlGateway::new(url).await;
     // // repo.create_credentials_table().await;
 
+    // let email = "test_email@email.com";
     // let password = "test-pass-word";
-    // let email = "test_email@gmail.com";
 
-    // let creds_id = register_user(&repo, email, password).await;
-    // dbg!(creds_id);
-
-    // let user = login_user(&repo, email, password).await;
-    // dbg!(user);
+    // register_user(&repo, email, password).await;
+    // login_user(&repo, email, password).await;
 
     // ---------- Surreal
-    // let password = "test-pass-word";
-    // let email = "test@email.com";
+    let repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
-    // // Start database
-    // let user_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+    let email = "t@email.com";
+    let password = "test-pass-word";
 
-    // // Create new user
-    // let creds = Credentials::new(email, password);
-    // user_repo.insert_credentials(&creds).await.unwrap();
-
-    // // Test getting user
-    // let user_record = user_repo
-    //     .find_credentials_by_user_identity(email)
-    //     .await
-    //     .unwrap();
-    // dbg!(&user_record);
+    register_user(&repo, email, password).await;
+    login_user(&repo, email, password).await;
 }

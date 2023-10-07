@@ -129,8 +129,8 @@ impl CredentialsRepository for MySqlGateway {
     async fn find_credentials_by_user_identity(
         &self,
         user_identity: &str,
-    ) -> Result<Credentials, Box<dyn Error>> {
-        let creds: Credentials = sqlx::query_as(
+    ) -> Result<Option<Credentials>, Box<dyn Error>> {
+        let creds_query: Result<Credentials, sqlx::Error> = sqlx::query_as(
             r#"
             SELECT id, user_identity, hashed_password
             FROM credentials
@@ -139,9 +139,21 @@ impl CredentialsRepository for MySqlGateway {
         )
         .bind(user_identity)
         .fetch_one(&self.pool)
-        .await?;
+        .await;
 
-        Ok(creds)
+        match creds_query {
+            Ok(creds) => {
+                println!("User Credentials Found");
+                Ok(Some(creds))
+            }
+            Err(e) => match e {
+                sqlx::Error::RowNotFound => {
+                    println!("User Credentials Not Found");
+                    Ok(None)
+                }
+                _ => Err(Box::new(e)),
+            },
+        }
     }
 }
 
@@ -181,6 +193,6 @@ mod tests {
 
         // Test getting credentials
         let creds = repo.find_credentials_by_user_identity(email).await.unwrap();
-        assert_eq!(creds.user_identity, email);
+        assert_eq!(creds.unwrap().user_identity, email);
     }
 }
