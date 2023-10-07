@@ -1,6 +1,6 @@
 # Brize Auth
 
-An authentication solution for SurrealDB.
+A simple to use async basic auth and session library for MySql and SurrealDB.
 
 ## Roadmap
 
