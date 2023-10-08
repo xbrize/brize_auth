@@ -20,11 +20,11 @@ async fn main() {
     // login_user(&repo, email, password).await;
 
     // ---------- Surreal
-    let repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+    // let repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
 
-    let email = "t@email.com";
-    let password = "test-pass-word";
+    // let email = "t@email.com";
+    // let password = "test-pass-word";
 
-    register_user(&repo, email, password).await;
-    login_user(&repo, email, password).await;
+    // register_user(&repo, email, password).await;
+    // login_user(&repo, email, password).await;
 }
