@@ -5,7 +5,12 @@ use crate::{
 };
 
 pub async fn handle_user_login(email: &str, password: &str) -> Option<SessionRecordId> {
-    let mut repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+    let mut repository = SurrealGateway::new((
+        "127.0.0.1:8000".to_string(),
+        "test".to_string(),
+        "test".to_string(),
+    ))
+    .await;
 
     match login_user(&repository, email, password).await {
         Some(_) => {
@@ -22,7 +27,12 @@ pub async fn handle_user_registration(
     user_identity: &str,
     password: &str,
 ) -> Option<SessionRecordId> {
-    let mut repository = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+    let mut repository = SurrealGateway::new((
+        "127.0.0.1:8000".to_string(),
+        "test".to_string(),
+        "test".to_string(),
+    ))
+    .await;
 
     match register_user(&repository, user_identity, password).await {
         Some(_) => {

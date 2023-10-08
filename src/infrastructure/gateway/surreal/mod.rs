@@ -37,7 +37,11 @@ pub struct SurrealGateway {
 }
 
 impl SurrealGateway {
-    pub async fn new(addr: &str, namespace: &str, database_name: &str) -> Self {
+    pub async fn new(params: (String, String, String)) -> Self {
+        let addr = params.0;
+        let namespace = params.1;
+        let database_name = params.2;
+
         let db = Surreal::new::<Ws>(addr)
             .await
             .expect("Could not connect to database:");
@@ -160,7 +164,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_surreal_session_repository() {
-        let mut repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+        let mut repo = SurrealGateway::new((
+            "127.0.0.1:8000".to_string(),
+            "test".to_string(),
+            "test".to_string(),
+        ))
+        .await;
 
         let session = Session::new(Expiry::Day(1));
         let query = repo.store_session(&session).await;
@@ -177,7 +186,12 @@ mod tests {
         let email = "test@email.com";
 
         // Start database
-        let creds_repo = SurrealGateway::new("127.0.0.1:8000", "test", "test").await;
+        let creds_repo = SurrealGateway::new((
+            "127.0.0.1:8000".to_string(),
+            "test".to_string(),
+            "test".to_string(),
+        ))
+        .await;
 
         // Create new creds
         let creds = Credentials::new(email, password);
