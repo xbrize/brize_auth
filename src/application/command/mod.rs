@@ -1,8 +1,8 @@
 mod session;
 pub use session::*;
 
-mod auth;
-pub use auth::*;
+mod credentials;
+pub use credentials::*;
 
 mod token;
 pub use token::*;

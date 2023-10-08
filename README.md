@@ -36,10 +36,10 @@ fn main {
     let raw_password = "plokij1234!";
 
     // If successful, get your session id or jwt token back, user is auto logged in
-    let session_id_or_jwt_token = register(user_identity, raw_password).await.unwrap();
+    let session_id_or_jwt_token = auth.register(user_identity, raw_password).await.unwrap();
 
     // After registering, will be able to log in
-    let session_id_or_jwt_token = login(user_identity, raw_password).await.unwrap();
+    let session_id_or_jwt_token = auth.login(user_identity, raw_password).await.unwrap();
 
     // When user tries something
     let bool = auth.validate_session(session_id).await.unrwap();
