@@ -1,5 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[derive(Clone, Copy)]
 pub enum Expiry {
     Second(u64),
     Day(u64),

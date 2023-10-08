@@ -1,21 +1,25 @@
 use crate::{
-    application::{CredentialsRepository, SessionRepository},
+    application::{
+        login_user, register_user, start_session, CredentialsRepository, SessionRepository,
+    },
+    domain::{Claims, Credentials, CredentialsId, Expiry, Session, SessionRecordId},
     infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
 };
-use redis::Expiry;
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use std::error::Error;
 
 pub struct Auth {
     credentials_gateway: Box<dyn CredentialsRepository>,
     credentials_table_name: String,
-    session_gateway: Option<Box<dyn SessionRepository>>,
+    session_gateway: Box<dyn SessionRepository>,
     session_table_name: String,
-    jwt_token_expiry: Option<Expiry>,
+    session_type: SessionType,
 }
 
+#[derive(Clone, Copy)]
 pub enum SessionType {
     JWT(Expiry),
-    Session,
+    Session(Expiry),
 }
 
 pub enum GatewayConfig {
@@ -39,7 +43,7 @@ impl AuthConfig {
             credentials_table_name: None,
             session_gateway: None,
             session_table_name: None,
-            session_type: SessionType::Session,
+            session_type: SessionType::Session(Expiry::Month(1)),
         }
     }
 
@@ -71,6 +75,7 @@ impl AuthConfig {
     }
 }
 
+static SECRET: &'static str = "super_secret_key";
 impl Auth {
     pub async fn new(auth_config: AuthConfig) -> Result<Self, Box<dyn Error>> {
         let credentials_gateway_config = auth_config
@@ -88,7 +93,7 @@ impl Auth {
         let credentials_gateway: Box<dyn CredentialsRepository> = match credentials_gateway_config {
             GatewayConfig::SurrealGateway(params) => Box::new(SurrealGateway::new(params).await),
             GatewayConfig::MySqlGateway(url) => Box::new(MySqlGateway::new(&url).await),
-            GatewayConfig::RedisGateway(url) => {
+            GatewayConfig::RedisGateway(_) => {
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     "Gateway Config Does Not Support Reddis",
@@ -96,31 +101,168 @@ impl Auth {
             }
         };
 
-        let session_gateway: Option<Box<dyn SessionRepository>> = match auth_config.session_gateway
-        {
+        let session_gateway: Box<dyn SessionRepository> = match auth_config.session_gateway {
             Some(gateway_config) => match gateway_config {
                 GatewayConfig::SurrealGateway(params) => {
-                    Some(Box::new(SurrealGateway::new(params).await))
+                    Box::new(SurrealGateway::new(params).await)
                 }
-                GatewayConfig::MySqlGateway(url) => Some(Box::new(MySqlGateway::new(&url).await)),
-                GatewayConfig::RedisGateway(url) => Some(Box::new(RedisGateway::new(&url).await)),
+                GatewayConfig::MySqlGateway(url) => Box::new(MySqlGateway::new(&url).await),
+                GatewayConfig::RedisGateway(url) => Box::new(RedisGateway::new(&url).await),
             },
-            None => None,
+            None => Box::new(MySqlGateway::new("").await),
         };
 
         let session_type = auth_config.session_type;
-
-        let jwt_token_expiry = match session_type {
-            SessionType::JWT(expiration) => Some(expiration),
-            _ => None,
-        };
 
         Ok(Self {
             credentials_gateway,
             credentials_table_name,
             session_gateway,
             session_table_name,
-            jwt_token_expiry,
+            session_type,
         })
+    }
+
+    pub async fn register(
+        &mut self,
+        user_identity: &str,
+        raw_password: &str,
+    ) -> Option<CredentialsId> {
+        match self
+            .credentials_gateway
+            .find_credentials_by_user_identity(user_identity)
+            .await
+        {
+            Ok(credentials_query) => match credentials_query {
+                Some(_) => {
+                    println!("Credentials Already Exist, User Not Created");
+                    return None;
+                }
+                None => {
+                    println!("New User Created");
+                    let credentials = Credentials::new(user_identity, raw_password);
+                    self.credentials_gateway
+                        .insert_credentials(&credentials)
+                        .await
+                        .unwrap();
+
+                    return Some(credentials.id);
+                }
+            },
+            Err(e) => {
+                println!("Failed to register user:{}", e);
+                return None;
+            }
+        };
+    }
+
+    pub async fn login(
+        &mut self,
+        user_identity: &str,
+        password: &str,
+    ) -> Result<SessionRecordId, Box<dyn Error>> {
+        if self.match_credentials(user_identity, password).await {
+            let session_record_id = self.start_session(user_identity).await?;
+            Ok(session_record_id)
+        } else {
+            Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Credentials did not match",
+            )))
+        }
+    }
+
+    async fn match_credentials(&self, email: &str, password: &str) -> bool {
+        match self
+            .credentials_gateway
+            .find_credentials_by_user_identity(&email)
+            .await
+        {
+            Ok(credentials_query) => match credentials_query {
+                Some(credentials) => {
+                    if credentials.match_password(password) {
+                        true
+                    } else {
+                        println!("Password Did Not Match");
+                        false
+                    }
+                }
+                None => {
+                    println!("User Credentials Not Found For Login");
+                    false
+                }
+            },
+            Err(e) => {
+                println!("Error Logging In User:{:#?}", e);
+                false
+            }
+        }
+    }
+
+    pub async fn start_session(
+        &mut self,
+        user_identity: &str,
+    ) -> Result<SessionRecordId, Box<dyn Error>> {
+        match self.session_type {
+            SessionType::JWT(duration) => {
+                let claims = Claims::new(user_identity, duration);
+                let token = Self::encode_token(claims)?;
+
+                Ok(token)
+            }
+            SessionType::Session(duration) => {
+                let session = Session::new(duration);
+                self.session_gateway.store_session(&session).await?;
+
+                Ok(session.id)
+            }
+        }
+    }
+
+    pub async fn validate_session<T: SessionRepository>(
+        &mut self,
+        session_record_id: &SessionRecordId,
+    ) -> Result<bool, Box<dyn Error>> {
+        match self.session_type {
+            SessionType::JWT(_) => {
+                let valid = Self::decode_token(&session_record_id);
+
+                if valid.is_ok() {
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
+            }
+            SessionType::Session(_) => {
+                let session = self
+                    .session_gateway
+                    .get_session_by_id(session_record_id)
+                    .await?;
+
+                if session.is_expired() {
+                    self.session_gateway
+                        .delete_session(session_record_id)
+                        .await?;
+                    Ok(false)
+                } else {
+                    Ok(true)
+                }
+            }
+        }
+    }
+
+    pub fn encode_token(claims: Claims) -> Result<String, jsonwebtoken::errors::Error> {
+        let header = Header::new(Algorithm::HS256);
+        encode(&header, &claims, &EncodingKey::from_secret(SECRET.as_ref()))
+    }
+
+    pub fn decode_token(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
+        let validation = Validation::new(Algorithm::HS256);
+        decode::<Claims>(
+            &token,
+            &DecodingKey::from_secret(SECRET.as_ref()),
+            &validation,
+        )
+        .map(|c| c.claims)
     }
 }
