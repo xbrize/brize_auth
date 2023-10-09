@@ -21,12 +21,12 @@ async fn main() {
 
     let mut auth = Auth::new(config).await.unwrap();
 
-    let user_identity = "test@gmail.com";
-    let raw_password = "plokij1234!";
+    // let user_identity = "test@gmail.com";
+    // let raw_password = "plokij1234!";
 
-    let user_key = auth.register(user_identity, raw_password).await;
-    dbg!(user_key);
-    // let session = auth.login(user_identity, raw_password).await;
-    // let validation = auth.validate_session(session).await;
+    // let user_key = auth.register(user_identity, raw_password).await;
+    // dbg!(user_key);
+    // let session = auth.login(user_identity, raw_password).await.unwrap();
+    // let validation = auth.validate_session(session.as_str()).await;
     // dbg!(validation);
 }

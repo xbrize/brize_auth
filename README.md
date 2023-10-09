@@ -15,36 +15,39 @@ cargo add brize_auth
 ## Usage
 
 ```rust
-use brize_auth::{Auth, Config};
+use brize_auth::{Auth, GatewayType, DatabaseConfig, Expiry};
 
 #[tokio::main]
 fn main {
-    let auth = Auth::new();
+    // Set your database params
+    let db_config = DatabaseConfig {
+        host: "localhost:3306".to_string(),
+        db_name: "mysql".to_string(),
+        user_name: "root".to_string(),
+        password: "my-secret-pw".to_string(),
+    };
 
-    auth.credentials_database(Config::SurrealDB); // Default is MySql
-    auth.credential_table(Config::TableName("my_creds_table")) // Default is credentials
+    // Start your auth config
+    let config = AuthConfig::new()
+        .set_credentials_gateway(GatewayType::MySql(db_config))
+        .set_session_duration(Expiry::Day(1));
 
-    // If you want a session based user auth
-    auth.session_database(Config::Redis); // Default is same database as credentials
-    auth.session_table(Config::TableName("my_sesh_table")) // Default is sessions
-    // --- OR ---
-    // If you want a JWT based user auth
-    auth.use_jwt(Expiry::Month(2)); // Will return JWT tokens with a 3 month TTL
+    // Init auth with configs
+    let mut auth = Auth::new(config).await.unwrap();
 
-
-    let user_identity = "brizey@gmail.com"; // This has to be something unique
+    // Get user credentials from a request
+    let user_identity = "test@gmail.com";
     let raw_password = "plokij1234!";
 
-    // If successful, get your session id or jwt token back, user is auto logged in
-    let session_id_or_jwt_token = auth.register(user_identity, raw_password).await.unwrap();
+    // Create a new set of credentials..
+    // .. returns the id of the credentials row, use this as a foreign key on your user table
+    let user_key: Option<String> = auth.register(user_identity, raw_password).await;
 
-    // After registering, will be able to log in
-    let session_id_or_jwt_token = auth.login(user_identity, raw_password).await.unwrap();
+    // Log user in and get a session token back
+    let session_token: Result<String> = auth.login(user_identity, raw_password).await;
 
-    // When user tries something
-    let bool = auth.validate_session(session_id).await.unrwap();
-    // --- OR ---
-    let bool = auth.validate_token(jwt_token).await.unwrap();
+    // Validate token later for user
+    let validation: Result<bool> = auth.validate_session(session.as_str()).await;
 
     // Log out and kill session
     auth.log_out(user_identity, session_id_or_jwt_token);
