@@ -11,16 +11,18 @@ use std::error::Error;
 pub struct Auth {
     credentials_gateway: Box<dyn CredentialsRepository>,
     credentials_table_name: String,
-    session_gateway: Box<dyn SessionRepository>,
-    session_table_name: String,
-    session_type: SessionType,
+    session_duration: Expiry,
+    // session_type: SessionType,
+    // session_gateway: Box<dyn SessionRepository>,
+    // session_table_name: String,
 }
 
-#[derive(Clone, Copy)]
-pub enum SessionType {
-    JWT(Expiry),
-    Session(Expiry),
-}
+// #[derive(Clone, Copy)]
+// pub enum SessionType {
+//     JWT(Expiry),
+//     Session(Expiry),
+//     None,
+// }
 
 pub enum GatewayConfig {
     MySqlGateway(String),
@@ -31,9 +33,9 @@ pub enum GatewayConfig {
 pub struct AuthConfig {
     credentials_gateway: Option<GatewayConfig>,
     credentials_table_name: Option<String>,
-    session_gateway: Option<GatewayConfig>,
-    session_table_name: Option<String>,
-    session_type: SessionType,
+    session_duration: Option<Expiry>, // session_gateway: Option<GatewayConfig>,
+                                      // session_table_name: Option<String>,
+                                      // session_type: SessionType,
 }
 
 impl AuthConfig {
@@ -41,9 +43,10 @@ impl AuthConfig {
         Self {
             credentials_gateway: None,
             credentials_table_name: None,
-            session_gateway: None,
-            session_table_name: None,
-            session_type: SessionType::Session(Expiry::Month(1)),
+            session_duration: None,
+            // session_gateway: None,
+            // session_table_name: None,
+            // session_type: SessionType::Session(Expiry::Month(1)),
         }
     }
 
@@ -57,22 +60,27 @@ impl AuthConfig {
         self
     }
 
-    pub fn set_session_gateway(mut self, config: GatewayConfig) -> Self {
-        self.session_gateway = Some(config);
+    pub fn set_session_duration(mut self, duration: Expiry) -> Self {
+        self.session_duration = Some(duration);
         self
     }
 
-    pub fn set_session_table_name(mut self, name: &str) -> Self {
-        self.session_table_name = Some(name.to_string());
-        self
-    }
+    // pub fn set_session_gateway(mut self, config: GatewayConfig) -> Self {
+    //     self.session_gateway = Some(config);
+    //     self
+    // }
 
-    pub fn use_jwt_token(mut self, expiration: Expiry) -> Self {
-        self.session_gateway = None;
-        self.session_table_name = None;
-        self.session_type = SessionType::JWT(expiration);
-        self
-    }
+    // pub fn set_session_table_name(mut self, name: &str) -> Self {
+    //     self.session_table_name = Some(name.to_string());
+    //     self
+    // }
+
+    // pub fn use_jwt_token(mut self, expiration: Expiry) -> Self {
+    //     self.session_gateway = None;
+    //     self.session_table_name = None;
+    //     // self.session_type = SessionType::JWT(expiration);
+    //     self
+    // }
 }
 
 static SECRET: &'static str = "super_secret_key";
@@ -86,9 +94,11 @@ impl Auth {
             .credentials_table_name
             .unwrap_or("credentials".to_string());
 
-        let session_table_name = auth_config
-            .session_table_name
-            .unwrap_or("sessions".to_string());
+        let session_duration = auth_config.session_duration.unwrap_or(Expiry::Month(1));
+
+        // let session_table_name = auth_config
+        //     .session_table_name
+        //     .unwrap_or("sessions".to_string());
 
         let credentials_gateway: Box<dyn CredentialsRepository> = match credentials_gateway_config {
             GatewayConfig::SurrealGateway(params) => Box::new(SurrealGateway::new(params).await),
@@ -96,30 +106,34 @@ impl Auth {
             GatewayConfig::RedisGateway(_) => {
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
-                    "Gateway Config Does Not Support Reddis",
+                    "Credentials Gateway Config Does Not Support Reddis",
                 )))
             }
         };
 
-        let session_gateway: Box<dyn SessionRepository> = match auth_config.session_gateway {
-            Some(gateway_config) => match gateway_config {
-                GatewayConfig::SurrealGateway(params) => {
-                    Box::new(SurrealGateway::new(params).await)
-                }
-                GatewayConfig::MySqlGateway(url) => Box::new(MySqlGateway::new(&url).await),
-                GatewayConfig::RedisGateway(url) => Box::new(RedisGateway::new(&url).await),
-            },
-            None => Box::new(MySqlGateway::new("").await),
-        };
+        // let session_gateway: Box<dyn SessionRepository> = match auth_config.session_gateway {
+        //     Some(gateway_config) => match gateway_config {
+        //         GatewayConfig::SurrealGateway(params) => {
+        //             Box::new(SurrealGateway::new(params).await)
+        //         }
+        //         GatewayConfig::MySqlGateway(url) => Box::new(MySqlGateway::new(&url).await),
+        //         GatewayConfig::RedisGateway(url) => Box::new(RedisGateway::new(&url).await),
+        //     },
+        //     None => {
+        //         return Err(Box::new(std::io::Error::new(
+        //             std::io::ErrorKind::InvalidData,
+        //             "Session Gateway Config Missing",
+        //         )))
+        //     }
+        // };
 
-        let session_type = auth_config.session_type;
+        // let session_type = auth_config.session_type;
 
         Ok(Self {
             credentials_gateway,
             credentials_table_name,
-            session_gateway,
-            session_table_name,
-            session_type,
+            session_duration,
+            // session_type,
         })
     }
 
@@ -203,52 +217,63 @@ impl Auth {
         &mut self,
         user_identity: &str,
     ) -> Result<SessionRecordId, Box<dyn Error>> {
-        match self.session_type {
-            SessionType::JWT(duration) => {
-                let claims = Claims::new(user_identity, duration);
-                let token = Self::encode_token(claims)?;
+        let claims = Claims::new(user_identity, self.session_duration);
+        let token = Self::encode_token(claims)?;
 
-                Ok(token)
-            }
-            SessionType::Session(duration) => {
-                let session = Session::new(duration);
-                self.session_gateway.store_session(&session).await?;
+        Ok(token)
+        // match self.session_type {
+        //     SessionType::JWT(duration) => {
+        //         let claims = Claims::new(user_identity, duration);
+        //         let token = Self::encode_token(claims)?;
 
-                Ok(session.id)
-            }
-        }
+        //         Ok(token)
+        //     }
+        //     SessionType::Session(duration) => {
+        //         let session = Session::new(duration);
+        //         self.session_gateway.store_session(&session).await?;
+
+        //         Ok(session.id)
+        //     }
+        // }
     }
 
     pub async fn validate_session<T: SessionRepository>(
         &mut self,
-        session_record_id: &SessionRecordId,
+        session_token: &SessionRecordId,
     ) -> Result<bool, Box<dyn Error>> {
-        match self.session_type {
-            SessionType::JWT(_) => {
-                let valid = Self::decode_token(&session_record_id);
+        let valid = Self::decode_token(&session_token);
 
-                if valid.is_ok() {
-                    Ok(true)
-                } else {
-                    Ok(false)
-                }
-            }
-            SessionType::Session(_) => {
-                let session = self
-                    .session_gateway
-                    .get_session_by_id(session_record_id)
-                    .await?;
-
-                if session.is_expired() {
-                    self.session_gateway
-                        .delete_session(session_record_id)
-                        .await?;
-                    Ok(false)
-                } else {
-                    Ok(true)
-                }
-            }
+        if valid.is_ok() {
+            Ok(true)
+        } else {
+            Ok(false)
         }
+        // match self.session_type {
+        //     SessionType::JWT(_) => {
+        //         let valid = Self::decode_token(&session_record_id);
+
+        //         if valid.is_ok() {
+        //             Ok(true)
+        //         } else {
+        //             Ok(false)
+        //         }
+        //     }
+        //     SessionType::Session(_) => {
+        //         let session = self
+        //             .session_gateway
+        //             .get_session_by_id(session_record_id)
+        //             .await?;
+
+        //         if session.is_expired() {
+        //             self.session_gateway
+        //                 .delete_session(session_record_id)
+        //                 .await?;
+        //             Ok(false)
+        //         } else {
+        //             Ok(true)
+        //         }
+        //     }
+        // }
     }
 
     pub fn encode_token(claims: Claims) -> Result<String, jsonwebtoken::errors::Error> {
