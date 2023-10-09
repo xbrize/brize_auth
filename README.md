@@ -30,7 +30,7 @@ fn main {
     // Start your auth config
     let config = AuthConfig::new()
         .set_credentials_gateway(GatewayType::MySql(db_config))
-        .set_session_duration(Expiry::Day(1));
+        .set_session_type(SessionType::Session(Expiry::Month(1)));
 
     // Init auth with configs
     let mut auth = Auth::new(config).await.unwrap();
@@ -92,6 +92,12 @@ enum GatewayType {
     Redis(DatabaseConfig),
 }
 
+enum SessionType {
+    JWT(Expiry),
+    Session(Expiry),
+    None,
+}
+
 enum Expiry {
     Second(u64),
     Day(u64),
@@ -103,15 +109,10 @@ enum Expiry {
 let config = AuthConfig::new()
     // Set your preferred database tech for the credentials table
     .set_credentials_gateway(GatewayType::MySql(DatabaseConfig))
-    // Table sessions are the default, and it defaults to your above GatewayType...
-    //.. Set your session duration with the Expiry module
-    .set_session_duration(Expiry::Month(1));
+    // Set your session type, TableSession, JWT, or None to disable and the duration
+    .set_session_type(SessionType::Session(Expiry::Month(1)));
     // Override the default session GatewayType from above
     .set_session_gateway(GatewayType::Redis(DatabaseConfig))
-    // Use JWT sessions instead of table sessions
-    .set_jwt_session(Expiry::Day(1), SUPER_SECRET_FOR_ENCODING_DECODING);
-    // Don't use the session feature at all
-    .disable_sessions()
 
 let auth = Auth::new(config).await;
 ```

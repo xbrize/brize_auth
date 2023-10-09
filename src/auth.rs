@@ -9,18 +9,17 @@ use std::error::Error;
 pub struct Auth {
     credentials_gateway: Box<dyn CredentialsRepository>,
     credentials_table_name: String,
-    session_duration: Expiry,
-    // session_type: SessionType,
-    // session_gateway: Box<dyn SessionRepository>,
-    // session_table_name: String,
+    session_gateway: Option<Box<dyn SessionRepository>>,
+    session_table_name: Option<String>,
+    session_type: SessionType,
 }
 
-// #[derive(Clone, Copy)]
-// pub enum SessionType {
-//     JWT(Expiry),
-//     Session(Expiry),
-//     None,
-// }
+#[derive(Clone, Copy)]
+pub enum SessionType {
+    JWT(Expiry),
+    Session(Expiry),
+    None,
+}
 
 pub enum GatewayType {
     MySql(DatabaseConfig),
@@ -31,10 +30,9 @@ pub enum GatewayType {
 pub struct AuthConfig {
     credentials_gateway: Option<GatewayType>,
     credentials_table_name: Option<String>,
-    session_duration: Option<Expiry>,
-    // session_gateway: Option<GatewayConfig>,
-    // session_table_name: Option<String>,
-    // session_type: SessionType,
+    session_gateway: Option<GatewayType>,
+    session_table_name: Option<String>,
+    session_type: SessionType,
 }
 
 impl AuthConfig {
@@ -42,10 +40,9 @@ impl AuthConfig {
         Self {
             credentials_gateway: None,
             credentials_table_name: None,
-            session_duration: None,
-            // session_gateway: None,
-            // session_table_name: None,
-            // session_type: SessionType::Session(Expiry::Month(1)),
+            session_gateway: None,
+            session_table_name: None,
+            session_type: SessionType::None,
         }
     }
 
@@ -59,32 +56,26 @@ impl AuthConfig {
         self
     }
 
-    pub fn set_session_duration(mut self, duration: Expiry) -> Self {
-        self.session_duration = Some(duration);
+    pub fn set_session_gateway(mut self, config: GatewayType) -> Self {
+        self.session_gateway = Some(config);
         self
     }
 
-    // pub fn set_session_gateway(mut self, config: GatewayConfig) -> Self {
-    //     self.session_gateway = Some(config);
-    //     self
-    // }
+    pub fn set_session_table_name(mut self, name: &str) -> Self {
+        self.session_table_name = Some(name.to_string());
+        self
+    }
 
-    // pub fn set_session_table_name(mut self, name: &str) -> Self {
-    //     self.session_table_name = Some(name.to_string());
-    //     self
-    // }
-
-    // pub fn use_jwt_token(mut self, expiration: Expiry) -> Self {
-    //     self.session_gateway = None;
-    //     self.session_table_name = None;
-    //     // self.session_type = SessionType::JWT(expiration);
-    //     self
-    // }
+    pub fn set_session_type(mut self, session_type: SessionType) -> Self {
+        self.session_type = session_type;
+        self
+    }
 }
 
 static SECRET: &'static str = "super_secret_key";
 impl Auth {
     pub async fn new(auth_config: AuthConfig) -> Result<Self, Box<dyn Error>> {
+        // ** Credentials config
         let credentials_gateway_config = auth_config
             .credentials_gateway
             .expect("Credentials Gateway Not Configured");
@@ -93,15 +84,10 @@ impl Auth {
             .credentials_table_name
             .unwrap_or("credentials".to_string());
 
-        let session_duration = auth_config.session_duration.unwrap_or(Expiry::Month(1));
-
-        // let session_table_name = auth_config
-        //     .session_table_name
-        //     .unwrap_or("sessions".to_string());
-
-        let credentials_gateway: Box<dyn CredentialsRepository> = match credentials_gateway_config {
-            GatewayType::Surreal(config) => Box::new(SurrealGateway::new(config).await),
-            GatewayType::MySql(config) => Box::new(MySqlGateway::new(config).await),
+        let credentials_gateway: Box<dyn CredentialsRepository> = match &credentials_gateway_config
+        {
+            GatewayType::Surreal(config) => Box::new(SurrealGateway::new(&config).await),
+            GatewayType::MySql(config) => Box::new(MySqlGateway::new(&config).await),
             GatewayType::Redis(_) => {
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
@@ -110,30 +96,55 @@ impl Auth {
             }
         };
 
-        // let session_gateway: Box<dyn SessionRepository> = match auth_config.session_gateway {
-        //     Some(gateway_config) => match gateway_config {
-        //         GatewayConfig::SurrealGateway(params) => {
-        //             Box::new(SurrealGateway::new(params).await)
-        //         }
-        //         GatewayConfig::MySqlGateway(url) => Box::new(MySqlGateway::new(&url).await),
-        //         GatewayConfig::RedisGateway(url) => Box::new(RedisGateway::new(&url).await),
-        //     },
-        //     None => {
-        //         return Err(Box::new(std::io::Error::new(
-        //             std::io::ErrorKind::InvalidData,
-        //             "Session Gateway Config Missing",
-        //         )))
-        //     }
-        // };
+        // ** Session Config
+        match auth_config.session_type {
+            SessionType::None => Ok(Self {
+                credentials_gateway,
+                credentials_table_name,
+                session_gateway: None,
+                session_table_name: None,
+                session_type: SessionType::None,
+            }),
+            SessionType::Session(duration) => {
+                let session_gateway: Box<dyn SessionRepository> = match auth_config.session_gateway
+                {
+                    Some(gateway_type) => match gateway_type {
+                        // Custom gateway case
+                        GatewayType::Surreal(config) => {
+                            Box::new(SurrealGateway::new(&config).await)
+                        }
+                        GatewayType::MySql(config) => Box::new(MySqlGateway::new(&config).await),
+                        GatewayType::Redis(config) => Box::new(RedisGateway::new(&config).await),
+                    },
+                    None => match &credentials_gateway_config {
+                        // Default case, make same as credentials gateway
+                        GatewayType::Surreal(config) => {
+                            Box::new(SurrealGateway::new(&config).await)
+                        }
+                        GatewayType::MySql(config) => Box::new(MySqlGateway::new(&config).await),
+                        GatewayType::Redis(config) => Box::new(RedisGateway::new(&config).await),
+                    },
+                };
+                let session_table_name = auth_config
+                    .session_table_name
+                    .unwrap_or("sessions".to_string());
 
-        // let session_type = auth_config.session_type;
-
-        Ok(Self {
-            credentials_gateway,
-            credentials_table_name,
-            session_duration,
-            // session_type,
-        })
+                Ok(Self {
+                    credentials_gateway,
+                    credentials_table_name,
+                    session_gateway: Some(session_gateway),
+                    session_table_name: Some(session_table_name),
+                    session_type: SessionType::Session(duration),
+                })
+            }
+            SessionType::JWT(duration) => Ok(Self {
+                credentials_gateway,
+                credentials_table_name,
+                session_gateway: None,
+                session_table_name: None,
+                session_type: SessionType::JWT(duration),
+            }),
+        }
     }
 
     pub async fn register(
@@ -216,60 +227,66 @@ impl Auth {
         &mut self,
         user_identity: &str,
     ) -> Result<SessionRecordId, Box<dyn Error>> {
-        let claims = Claims::new(user_identity, self.session_duration);
-        let token = Self::encode_token(claims)?;
+        match self.session_type {
+            SessionType::JWT(duration) => {
+                let claims = Claims::new(user_identity, duration);
+                let token = Self::encode_token(claims)?;
 
-        Ok(token)
-        // match self.session_type {
-        //     SessionType::JWT(duration) => {
-        //         let claims = Claims::new(user_identity, duration);
-        //         let token = Self::encode_token(claims)?;
-
-        //         Ok(token)
-        //     }
-        //     SessionType::Session(duration) => {
-        //         let session = Session::new(duration);
-        //         self.session_gateway.store_session(&session).await?;
-
-        //         Ok(session.id)
-        //     }
-        // }
+                Ok(token)
+            }
+            SessionType::Session(duration) => {
+                let session = Session::new(duration);
+                match self.session_gateway {
+                    Some(ref mut gateway) => {
+                        gateway.store_session(&session).await?;
+                        Ok(session.id)
+                    }
+                    None => Err(Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Session not enabled",
+                    ))),
+                }
+            }
+            _ => Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Session not enabled",
+            ))),
+        }
     }
 
     pub async fn validate_session(&mut self, session_token: &str) -> Result<bool, Box<dyn Error>> {
-        let valid = Self::decode_token(&session_token);
+        match self.session_type {
+            SessionType::JWT(_) => {
+                let valid = Self::decode_token(&session_token);
 
-        if valid.is_ok() {
-            Ok(true)
-        } else {
-            Ok(false)
+                if valid.is_ok() {
+                    Ok(true)
+                } else {
+                    Ok(false)
+                }
+            }
+            SessionType::Session(_) => match self.session_gateway {
+                Some(ref mut gateway) => {
+                    let session = gateway
+                        .get_session_by_id(&session_token.to_string())
+                        .await?;
+                    if session.is_expired() {
+                        gateway.delete_session(&session_token.to_string()).await?;
+                        Ok(false)
+                    } else {
+                        Ok(true)
+                    }
+                }
+                None => Err(Box::new(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Session not enabled",
+                ))),
+            },
+            _ => Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Session not enabled",
+            ))),
         }
-        // match self.session_type {
-        //     SessionType::JWT(_) => {
-        //         let valid = Self::decode_token(&session_record_id);
-
-        //         if valid.is_ok() {
-        //             Ok(true)
-        //         } else {
-        //             Ok(false)
-        //         }
-        //     }
-        //     SessionType::Session(_) => {
-        //         let session = self
-        //             .session_gateway
-        //             .get_session_by_id(session_record_id)
-        //             .await?;
-
-        //         if session.is_expired() {
-        //             self.session_gateway
-        //                 .delete_session(session_record_id)
-        //                 .await?;
-        //             Ok(false)
-        //         } else {
-        //             Ok(true)
-        //         }
-        //     }
-        // }
     }
 
     pub fn encode_token(claims: Claims) -> Result<String, jsonwebtoken::errors::Error> {

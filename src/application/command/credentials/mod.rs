@@ -77,7 +77,7 @@ mod tests {
             user_name: "root".to_string(),
         };
 
-        let mut repo = MySqlGateway::new(db_config).await;
+        let mut repo = MySqlGateway::new(&db_config).await;
         repo.create_credentials_table().await;
 
         let password = "test-pass-word";

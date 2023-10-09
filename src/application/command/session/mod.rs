@@ -43,7 +43,7 @@ mod tests {
             db_name: "".to_string(),
         };
 
-        let mut repo = RedisGateway::new(config).await;
+        let mut repo = RedisGateway::new(&config).await;
 
         let session_id = start_session(&mut repo, Expiry::Day(1)).await;
         assert!(session_id.is_ok());

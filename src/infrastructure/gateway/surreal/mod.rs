@@ -39,12 +39,12 @@ pub struct SurrealGateway {
 }
 
 impl SurrealGateway {
-    pub async fn new(config: DatabaseConfig) -> Self {
-        let db = Surreal::new::<Ws>(config.host)
+    pub async fn new(config: &DatabaseConfig) -> Self {
+        let db = Surreal::new::<Ws>(config.host.as_str())
             .await
             .expect("Could not connect to database:");
-        db.use_ns(config.user_name)
-            .use_db(config.db_name)
+        db.use_ns(config.user_name.as_str())
+            .use_db(config.db_name.as_str())
             .await
             .expect("Could not connect to database:");
 
@@ -168,7 +168,7 @@ mod tests {
             user_name: "test".to_string(),
             password: "".to_string(),
         };
-        let mut repo = SurrealGateway::new(db_config).await;
+        let mut repo = SurrealGateway::new(&db_config).await;
 
         let session = Session::new(Expiry::Day(1));
         let query = repo.store_session(&session).await;
@@ -191,7 +191,7 @@ mod tests {
             user_name: "test".to_string(),
             password: "".to_string(),
         };
-        let mut repo = SurrealGateway::new(db_config).await;
+        let mut repo = SurrealGateway::new(&db_config).await;
 
         // Create new creds
         let creds = Credentials::new(email, password);

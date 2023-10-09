@@ -13,7 +13,7 @@ pub struct MySqlGateway {
 }
 
 impl MySqlGateway {
-    pub async fn new(config: DatabaseConfig) -> Self {
+    pub async fn new(config: &DatabaseConfig) -> Self {
         let addr = format!(
             "mysql://{}:{}@{}/{}",
             config.user_name, config.password, config.host, config.db_name
@@ -179,7 +179,7 @@ mod tests {
             user_name: "root".to_string(),
         };
 
-        let mut repo = MySqlGateway::new(db_config).await;
+        let mut repo = MySqlGateway::new(&db_config).await;
         repo.create_session_table().await;
 
         let session = &Session::new(Expiry::Day(1));
@@ -201,7 +201,7 @@ mod tests {
             user_name: "root".to_string(),
         };
 
-        let mut repo = MySqlGateway::new(db_config).await;
+        let mut repo = MySqlGateway::new(&db_config).await;
         repo.create_credentials_table().await;
 
         let password = "test-pass-word";

@@ -13,7 +13,7 @@ pub struct RedisGateway {
 }
 
 impl RedisGateway {
-    pub async fn new(config: DatabaseConfig) -> Self {
+    pub async fn new(config: &DatabaseConfig) -> Self {
         let addr = format!("redis://:{}@{}/", config.password, config.host);
         let client = redis::Client::open(addr).unwrap();
         let conn = client.get_async_connection().await.unwrap();
@@ -62,7 +62,7 @@ mod test {
             db_name: "".to_string(),
         };
 
-        let mut redis_gateway = RedisGateway::new(config).await;
+        let mut redis_gateway = RedisGateway::new(&config).await;
 
         let session = Session::new(Expiry::Day(1));
         let query = redis_gateway.store_session(&session).await;
