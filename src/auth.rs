@@ -237,10 +237,7 @@ impl Auth {
         // }
     }
 
-    pub async fn validate_session<T: SessionRepository>(
-        &mut self,
-        session_token: &SessionRecordId,
-    ) -> Result<bool, Box<dyn Error>> {
+    pub async fn validate_session(&mut self, session_token: &str) -> Result<bool, Box<dyn Error>> {
         let valid = Self::decode_token(&session_token);
 
         if valid.is_ok() {
