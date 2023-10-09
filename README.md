@@ -15,7 +15,7 @@ cargo add brize_auth
 ## Usage
 
 ```rust
-use brize_auth::{Auth, GatewayType, DatabaseConfig, Expiry};
+use brize_auth::{Auth, AuthConfig, GatewayType, DatabaseConfig, Expiry};
 
 #[tokio::main]
 fn main {
@@ -70,6 +70,50 @@ fn main {
     // Request fresh token
     let new_token = auth.get_fresh_token(old_token);
 }
+```
+
+## Config
+
+Brize Auth has some opinions, but can be configured to your use case.
+
+```rust
+use brize_auth::{Auth, AuthConfig, GatewayType, DatabaseConfig, Expiry};
+
+pub struct DatabaseConfig {
+    pub db_name: String,
+    pub password: String,
+    pub user_name: String,
+    pub host: String,
+}
+
+enum GatewayType {
+    MySql(DatabaseConfig),
+    Surreal(DatabaseConfig),
+    Redis(DatabaseConfig),
+}
+
+enum Expiry {
+    Second(u64),
+    Day(u64),
+    Week(u64),
+    Month(u64),
+    Year(u64),
+}
+
+let config = AuthConfig::new()
+    // Set your preferred database tech for the credentials table
+    .set_credentials_gateway(GatewayType::MySql(DatabaseConfig))
+    // Table sessions are the default, and it defaults to your above GatewayType...
+    //.. Set your session duration with the Expiry module
+    .set_session_duration(Expiry::Month(1));
+    // Override the default session GatewayType from above
+    .set_session_gateway(GatewayType::Redis(DatabaseConfig))
+    // Use JWT sessions instead of table sessions
+    .set_jwt_session(Expiry::Day(1), SUPER_SECRET_FOR_ENCODING_DECODING);
+    // Don't use the session feature at all
+    .disable_sessions()
+
+let auth = Auth::new(config).await;
 ```
 
 ## Roadmap
