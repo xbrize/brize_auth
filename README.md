@@ -1,8 +1,8 @@
 # Brize Auth :construction:
 
-A simple to use async basic auth and session library for MySql and SurrealDB.
+A simple to use async basic authentication and session library for MySql and SurrealDB.
 
-Still a WIP, not in a usable state.
+Still a WIP, not in a usable state. Roadmap at bottom.
 
 ## Setup
 
@@ -47,28 +47,7 @@ fn main {
     let session_token: Result<String> = auth.login(user_identity, raw_password).await;
 
     // Validate token later for user
-    let validation: Result<bool> = auth.validate_session(session.as_str()).await;
-
-    // Log out and kill session
-    auth.log_out(user_identity, session_id_or_jwt_token);
-
-    // Change user credentials
-    let new_identity = "brizzz@gmail.com";
-    let new_password = "vbnm1234!";
-    auth.change_user_identity(user_identity, new_identity);
-    auth.change_user_password(raw_password, new_password);
-
-    // Delete user
-    auth.delete_credentials(user_identity, raw_password);
-
-    // Delete session
-    auth.delete_session(session_id);
-
-    // Request fresh session
-    let new_session = auth.get_fresh_session(old_session_id);
-
-    // Request fresh token
-    let new_token = auth.get_fresh_token(old_token);
+    let validation: Result<bool> = auth.validate_session(session_token.as_str()).await;
 }
 ```
 
@@ -119,13 +98,25 @@ let auth = Auth::new(config).await;
 
 ## Roadmap
 
-- [ ] Database
-  - [ ] Authentication
-    - [x] User Schema
-    - [x] User Registration
-    - [x] Login
-    - [x] Session Management
-    - [ ] Logout
-    - [ ] Delete User
-  - Authorization
-    - [ ] Roles Schema
+- [x] User Registration
+  - [x] Create user credentials if none exist
+  - [x] Deny if user credentials does exist
+  - [x] Return credentials foreign key
+- [x] Login
+  - [x] Match user credentials
+  - [x] Return session token if matched (if sessions enabled)
+  - [x] Deny user if no match
+  - [ ] Hash password
+- [x] Session Management
+  - [x] Create session
+  - [x] Validate session
+  - [ ] Delete sessions based on age and other edge cases
+- [ ] Logout
+  - [ ] Match user credentials and/or session token
+  - [ ] Delete users session
+- [ ] Change Credentials
+  - [ ] Update user_identity
+  - [ ] Update user_password
+  - [ ] Decide what to return
+- [ ] Delete User
+  - [ ] Remove credentials from database
