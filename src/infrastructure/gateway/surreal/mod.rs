@@ -6,9 +6,7 @@ use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
 use crate::application::{CredentialsRepository, SessionRepository};
-use crate::domain::{Credentials, Session, SessionRecordId};
-
-use super::DatabaseConfig;
+use crate::domain::{Credentials, DatabaseConfig, Session, SessionRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
@@ -191,7 +189,7 @@ mod tests {
             user_name: "test".to_string(),
             password: "".to_string(),
         };
-        let mut repo = SurrealGateway::new(&db_config).await;
+        let repo = SurrealGateway::new(&db_config).await;
 
         // Create new creds
         let creds = Credentials::new(email, password);

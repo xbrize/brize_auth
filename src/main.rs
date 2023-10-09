@@ -1,7 +1,6 @@
 use brize_auth::{
-    auth::{Auth, AuthConfig, GatewayType, SessionType},
-    domain::Expiry,
-    infrastructure::{DatabaseConfig, MySqlGateway},
+    application::{Auth, AuthConfig},
+    domain::{DatabaseConfig, Expiry, GatewayType, SessionType},
 };
 
 #[tokio::main]

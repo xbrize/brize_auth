@@ -10,6 +10,13 @@ pub enum SessionState {
     Invalid,
 }
 
+#[derive(Clone, Copy)]
+pub enum SessionType {
+    JWT(Expiry),
+    Session(Expiry),
+    None,
+}
+
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Session {
     pub id: SessionRecordId,

@@ -2,11 +2,9 @@ use std::error::Error;
 
 use crate::{
     application::{CredentialsRepository, SessionRepository},
-    domain::{Credentials, Session, SessionRecordId},
+    domain::{Credentials, DatabaseConfig, Session, SessionRecordId},
 };
 use sqlx::mysql::MySqlPool;
-
-use super::DatabaseConfig;
 
 pub struct MySqlGateway {
     pub pool: MySqlPool,
@@ -171,7 +169,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_mysql_session_repo() {
-        let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
         let db_config = DatabaseConfig {
             host: "localhost:3306".to_string(),
             password: "my-secret-pw".to_string(),
@@ -193,7 +190,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_mysql_credentials_repo() {
-        let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
         let db_config = DatabaseConfig {
             host: "localhost:3306".to_string(),
             password: "my-secret-pw".to_string(),
@@ -201,7 +197,7 @@ mod tests {
             user_name: "root".to_string(),
         };
 
-        let mut repo = MySqlGateway::new(&db_config).await;
+        let repo = MySqlGateway::new(&db_config).await;
         repo.create_credentials_table().await;
 
         let password = "test-pass-word";

@@ -4,9 +4,7 @@ use redis::aio::Connection;
 use redis::AsyncCommands;
 
 use crate::application::SessionRepository;
-use crate::domain::{Session, SessionRecordId};
-
-use super::DatabaseConfig;
+use crate::domain::{DatabaseConfig, Session, SessionRecordId};
 
 pub struct RedisGateway {
     conn: Connection,

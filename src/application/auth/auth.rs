@@ -1,10 +1,14 @@
 use crate::{
     application::{CredentialsRepository, SessionRepository},
-    domain::{Claims, Credentials, CredentialsId, Expiry, Session, SessionRecordId},
-    infrastructure::{DatabaseConfig, MySqlGateway, RedisGateway, SurrealGateway},
+    domain::{
+        Claims, Credentials, CredentialsId, GatewayType, Session, SessionRecordId, SessionType,
+    },
+    infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
 };
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use std::error::Error;
+
+use super::AuthConfig;
 
 pub struct Auth {
     credentials_gateway: Box<dyn CredentialsRepository>,
@@ -12,64 +16,6 @@ pub struct Auth {
     session_gateway: Option<Box<dyn SessionRepository>>,
     session_table_name: Option<String>,
     session_type: SessionType,
-}
-
-#[derive(Clone, Copy)]
-pub enum SessionType {
-    JWT(Expiry),
-    Session(Expiry),
-    None,
-}
-
-pub enum GatewayType {
-    MySql(DatabaseConfig),
-    Surreal(DatabaseConfig),
-    Redis(DatabaseConfig),
-}
-
-pub struct AuthConfig {
-    credentials_gateway: Option<GatewayType>,
-    credentials_table_name: Option<String>,
-    session_gateway: Option<GatewayType>,
-    session_table_name: Option<String>,
-    session_type: SessionType,
-}
-
-impl AuthConfig {
-    pub fn new() -> Self {
-        Self {
-            credentials_gateway: None,
-            credentials_table_name: None,
-            session_gateway: None,
-            session_table_name: None,
-            session_type: SessionType::None,
-        }
-    }
-
-    pub fn set_credentials_gateway(mut self, config: GatewayType) -> Self {
-        self.credentials_gateway = Some(config);
-        self
-    }
-
-    pub fn set_credentials_table_name(mut self, name: &str) -> Self {
-        self.credentials_table_name = Some(name.to_string());
-        self
-    }
-
-    pub fn set_session_gateway(mut self, config: GatewayType) -> Self {
-        self.session_gateway = Some(config);
-        self
-    }
-
-    pub fn set_session_table_name(mut self, name: &str) -> Self {
-        self.session_table_name = Some(name.to_string());
-        self
-    }
-
-    pub fn set_session_type(mut self, session_type: SessionType) -> Self {
-        self.session_type = session_type;
-        self
-    }
 }
 
 static SECRET: &'static str = "super_secret_key";
