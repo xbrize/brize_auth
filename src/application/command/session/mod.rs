@@ -32,11 +32,18 @@ pub async fn validate_session<T: SessionRepository>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::RedisGateway;
+    use crate::infrastructure::{DatabaseConfig, RedisGateway};
 
     #[tokio::test]
     async fn test_session_commands_with_reddis() {
-        let mut repo = RedisGateway::new("redis://:mypassword@localhost/").await;
+        let config = DatabaseConfig {
+            host: "localhost".to_string(),
+            password: "mypassword".to_string(),
+            user_name: "".to_string(),
+            db_name: "".to_string(),
+        };
+
+        let mut repo = RedisGateway::new(config).await;
 
         let session_id = start_session(&mut repo, Expiry::Day(1)).await;
         assert!(session_id.is_ok());

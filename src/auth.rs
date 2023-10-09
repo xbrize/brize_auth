@@ -1,9 +1,7 @@
 use crate::{
-    application::{
-        login_user, register_user, start_session, CredentialsRepository, SessionRepository,
-    },
+    application::{CredentialsRepository, SessionRepository},
     domain::{Claims, Credentials, CredentialsId, Expiry, Session, SessionRecordId},
-    infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
+    infrastructure::{DatabaseConfig, MySqlGateway, RedisGateway, SurrealGateway},
 };
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use std::error::Error;
@@ -24,18 +22,19 @@ pub struct Auth {
 //     None,
 // }
 
-pub enum GatewayConfig {
-    MySqlGateway(String),
-    SurrealGateway((String, String, String)),
-    RedisGateway(String),
+pub enum GatewayType {
+    MySql(DatabaseConfig),
+    Surreal(DatabaseConfig),
+    Redis(DatabaseConfig),
 }
 
 pub struct AuthConfig {
-    credentials_gateway: Option<GatewayConfig>,
+    credentials_gateway: Option<GatewayType>,
     credentials_table_name: Option<String>,
-    session_duration: Option<Expiry>, // session_gateway: Option<GatewayConfig>,
-                                      // session_table_name: Option<String>,
-                                      // session_type: SessionType,
+    session_duration: Option<Expiry>,
+    // session_gateway: Option<GatewayConfig>,
+    // session_table_name: Option<String>,
+    // session_type: SessionType,
 }
 
 impl AuthConfig {
@@ -50,7 +49,7 @@ impl AuthConfig {
         }
     }
 
-    pub fn set_credentials_gateway(mut self, config: GatewayConfig) -> Self {
+    pub fn set_credentials_gateway(mut self, config: GatewayType) -> Self {
         self.credentials_gateway = Some(config);
         self
     }
@@ -101,9 +100,9 @@ impl Auth {
         //     .unwrap_or("sessions".to_string());
 
         let credentials_gateway: Box<dyn CredentialsRepository> = match credentials_gateway_config {
-            GatewayConfig::SurrealGateway(params) => Box::new(SurrealGateway::new(params).await),
-            GatewayConfig::MySqlGateway(url) => Box::new(MySqlGateway::new(&url).await),
-            GatewayConfig::RedisGateway(_) => {
+            GatewayType::Surreal(config) => Box::new(SurrealGateway::new(config).await),
+            GatewayType::MySql(config) => Box::new(MySqlGateway::new(config).await),
+            GatewayType::Redis(_) => {
                 return Err(Box::new(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     "Credentials Gateway Config Does Not Support Reddis",

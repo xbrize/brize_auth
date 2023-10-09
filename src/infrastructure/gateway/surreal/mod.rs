@@ -8,6 +8,8 @@ use surrealdb::Surreal;
 use crate::application::{CredentialsRepository, SessionRepository};
 use crate::domain::{Credentials, Session, SessionRecordId};
 
+use super::DatabaseConfig;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
     pub id: Thing,
@@ -37,16 +39,12 @@ pub struct SurrealGateway {
 }
 
 impl SurrealGateway {
-    pub async fn new(params: (String, String, String)) -> Self {
-        let addr = params.0;
-        let namespace = params.1;
-        let database_name = params.2;
-
-        let db = Surreal::new::<Ws>(addr)
+    pub async fn new(config: DatabaseConfig) -> Self {
+        let db = Surreal::new::<Ws>(config.host)
             .await
             .expect("Could not connect to database:");
-        db.use_ns(namespace)
-            .use_db(database_name)
+        db.use_ns(config.user_name)
+            .use_db(config.db_name)
             .await
             .expect("Could not connect to database:");
 
@@ -164,12 +162,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_surreal_session_repository() {
-        let mut repo = SurrealGateway::new((
-            "127.0.0.1:8000".to_string(),
-            "test".to_string(),
-            "test".to_string(),
-        ))
-        .await;
+        let db_config = DatabaseConfig {
+            db_name: "test".to_string(),
+            host: "127.0.0.1:8000".to_string(),
+            user_name: "test".to_string(),
+            password: "".to_string(),
+        };
+        let mut repo = SurrealGateway::new(db_config).await;
 
         let session = Session::new(Expiry::Day(1));
         let query = repo.store_session(&session).await;
@@ -186,22 +185,20 @@ mod tests {
         let email = "test@email.com";
 
         // Start database
-        let creds_repo = SurrealGateway::new((
-            "127.0.0.1:8000".to_string(),
-            "test".to_string(),
-            "test".to_string(),
-        ))
-        .await;
+        let db_config = DatabaseConfig {
+            db_name: "test".to_string(),
+            host: "127.0.0.1:8000".to_string(),
+            user_name: "test".to_string(),
+            password: "".to_string(),
+        };
+        let mut repo = SurrealGateway::new(db_config).await;
 
         // Create new creds
         let creds = Credentials::new(email, password);
-        creds_repo.insert_credentials(&creds).await.unwrap();
+        repo.insert_credentials(&creds).await.unwrap();
 
         // Test getting creds
-        let user_cred = creds_repo
-            .find_credentials_by_user_identity(email)
-            .await
-            .unwrap();
+        let user_cred = repo.find_credentials_by_user_identity(email).await.unwrap();
         assert_eq!(user_cred.unwrap().user_identity, email);
     }
 }

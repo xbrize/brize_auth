@@ -6,13 +6,19 @@ use crate::{
 };
 use sqlx::mysql::MySqlPool;
 
+use super::DatabaseConfig;
+
 pub struct MySqlGateway {
     pub pool: MySqlPool,
 }
 
 impl MySqlGateway {
-    pub async fn new(addr: &str) -> Self {
-        let pool = MySqlPool::connect(addr)
+    pub async fn new(config: DatabaseConfig) -> Self {
+        let addr = format!(
+            "mysql://{}:{}@{}/{}",
+            config.user_name, config.password, config.host, config.db_name
+        );
+        let pool = MySqlPool::connect(addr.as_str())
             .await
             .expect("Failed to connect to SqlDb");
 
@@ -166,7 +172,14 @@ mod tests {
     #[tokio::test]
     async fn test_mysql_session_repo() {
         let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
-        let mut repo = MySqlGateway::new(url).await;
+        let db_config = DatabaseConfig {
+            host: "localhost:3306".to_string(),
+            password: "my-secret-pw".to_string(),
+            db_name: "mysql".to_string(),
+            user_name: "root".to_string(),
+        };
+
+        let mut repo = MySqlGateway::new(db_config).await;
         repo.create_session_table().await;
 
         let session = &Session::new(Expiry::Day(1));
@@ -181,7 +194,14 @@ mod tests {
     #[tokio::test]
     async fn test_mysql_credentials_repo() {
         let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
-        let repo = MySqlGateway::new(url).await;
+        let db_config = DatabaseConfig {
+            host: "localhost:3306".to_string(),
+            password: "my-secret-pw".to_string(),
+            db_name: "mysql".to_string(),
+            user_name: "root".to_string(),
+        };
+
+        let mut repo = MySqlGateway::new(db_config).await;
         repo.create_credentials_table().await;
 
         let password = "test-pass-word";

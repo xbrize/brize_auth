@@ -63,15 +63,21 @@ pub async fn register_user<T: CredentialsRepository>(
 
 #[cfg(test)]
 mod tests {
-    use crate::infrastructure::MySqlGateway;
+    use crate::infrastructure::{DatabaseConfig, MySqlGateway};
 
     use super::*;
 
     #[tokio::test]
     async fn test_register_command() {
         // Start database
-        let url = "mysql://root:my-secret-pw@localhost:3306/mysql";
-        let repo = MySqlGateway::new(url).await;
+        let db_config = DatabaseConfig {
+            host: "localhost:3306".to_string(),
+            password: "my-secret-pw".to_string(),
+            db_name: "mysql".to_string(),
+            user_name: "root".to_string(),
+        };
+
+        let mut repo = MySqlGateway::new(db_config).await;
         repo.create_credentials_table().await;
 
         let password = "test-pass-word";
