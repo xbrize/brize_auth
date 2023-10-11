@@ -1,3 +1,4 @@
+use super::AuthConfig;
 use crate::{
     application::{CredentialsRepository, SessionRepository},
     domain::{
@@ -8,13 +9,9 @@ use crate::{
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use std::error::Error;
 
-use super::AuthConfig;
-
 pub struct Auth {
     credentials_gateway: Box<dyn CredentialsRepository>,
-    credentials_table_name: String,
     session_gateway: Option<Box<dyn SessionRepository>>,
-    session_table_name: Option<String>,
     session_type: SessionType,
 }
 
@@ -25,10 +22,6 @@ impl Auth {
         let credentials_gateway_config = auth_config
             .credentials_gateway
             .expect("Credentials Gateway Not Configured");
-
-        let credentials_table_name = auth_config
-            .credentials_table_name
-            .unwrap_or("credentials".to_string());
 
         let credentials_gateway: Box<dyn CredentialsRepository> = match &credentials_gateway_config
         {
@@ -46,9 +39,7 @@ impl Auth {
         match auth_config.session_type {
             SessionType::None => Ok(Self {
                 credentials_gateway,
-                credentials_table_name,
                 session_gateway: None,
-                session_table_name: None,
                 session_type: SessionType::None,
             }),
             SessionType::Session(duration) => {
@@ -71,23 +62,16 @@ impl Auth {
                         GatewayType::Redis(config) => Box::new(RedisGateway::new(&config).await),
                     },
                 };
-                let session_table_name = auth_config
-                    .session_table_name
-                    .unwrap_or("sessions".to_string());
 
                 Ok(Self {
                     credentials_gateway,
-                    credentials_table_name,
                     session_gateway: Some(session_gateway),
-                    session_table_name: Some(session_table_name),
                     session_type: SessionType::Session(duration),
                 })
             }
             SessionType::JWT(duration) => Ok(Self {
                 credentials_gateway,
-                credentials_table_name,
                 session_gateway: None,
-                session_table_name: None,
                 session_type: SessionType::JWT(duration),
             }),
         }
@@ -248,5 +232,65 @@ impl Auth {
             &validation,
         )
         .map(|c| c.claims)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::domain::{DatabaseConfig, Expiry};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_auth_mysql() {
+        let db_config = DatabaseConfig {
+            host: "localhost:3306".to_string(),
+            db_name: "mysql".to_string(),
+            user_name: "root".to_string(),
+            password: "my-secret-pw".to_string(),
+        };
+        // let repo = MySqlGateway::new(&db_config).await;
+        // repo.create_credentials_table().await;
+        // repo.create_session_table().await;
+
+        let config = AuthConfig::new()
+            .set_credentials_gateway(GatewayType::MySql(db_config))
+            .set_session_type(SessionType::Session(Expiry::Month(1)));
+
+        let mut auth = Auth::new(config).await.unwrap();
+
+        let random_string = uuid::Uuid::new_v4().to_string();
+        let user_identity = &random_string[0..10];
+        let raw_password = &random_string[0..8];
+
+        auth.register(user_identity, raw_password).await.unwrap();
+        let session = auth.login(user_identity, raw_password).await.unwrap();
+        let validation = auth.validate_session(session.as_str()).await.unwrap();
+        assert!(validation);
+    }
+
+    #[tokio::test]
+    async fn test_auth_surreal() {
+        let db_config = DatabaseConfig {
+            db_name: "test".to_string(),
+            host: "127.0.0.1:8000".to_string(),
+            user_name: "test".to_string(),
+            password: "".to_string(),
+        };
+
+        let config = AuthConfig::new()
+            .set_credentials_gateway(GatewayType::Surreal(db_config))
+            .set_session_type(SessionType::Session(Expiry::Month(1)));
+
+        let mut auth = Auth::new(config).await.unwrap();
+
+        let random_string = uuid::Uuid::new_v4().to_string();
+        let user_identity = &random_string[0..10];
+        let raw_password = &random_string[0..8];
+
+        auth.register(user_identity, raw_password).await.unwrap();
+        let session = auth.login(user_identity, raw_password).await.unwrap();
+        let validation = auth.validate_session(session.as_str()).await.unwrap();
+        assert!(validation);
     }
 }
