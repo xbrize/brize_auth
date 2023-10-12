@@ -1,15 +1,34 @@
 # Brize Auth :construction:
 
-A simple to use async basic authentication and session library for MySql and SurrealDB.
+A minimalistic and async authentication library.
 
 Still a WIP, not in a usable state. Roadmap at bottom.
 
 ## Setup
 
-Start Development Database, Non-Persist, No-Auth
+First install the crate
 
 ```bash
 cargo add brize_auth
+```
+
+Next, set up the database tables with this schema
+
+```sql
+-- Credentials table
+CREATE TABLE credentials (
+    id CHAR(36) PRIMARY KEY,
+    user_identity CHAR(36) NOT NULL,
+    hashed_password CHAR(36) NOT NULL
+);
+
+-- Sessions table
+CREATE TABLE sessions (
+    id CHAR(36) PRIMARY KEY,
+    created_at BIGINT UNSIGNED NOT NULL,
+    expires_at BIGINT UNSIGNED NOT NULL
+);
+
 ```
 
 ## Usage
@@ -47,13 +66,16 @@ fn main {
     let session_token: Result<String> = auth.login(user_identity, raw_password).await;
 
     // Validate token later for user
-    let validation: Result<bool> = auth.validate_session(session_token.as_str()).await;
+    let validation: Result<bool> = auth.validate_session(session_token).await;
+
+    // Logout user and delete the session
+    let logout_status = Result<()> = auth.logout(session_token).await;
 }
 ```
 
 ## Config
 
-Brize Auth has some opinions, but can be configured to your use case.
+The preferred database and session type can be configured to your use case.
 
 ```rust
 use brize_auth::{Auth, AuthConfig, GatewayType, DatabaseConfig, Expiry};
@@ -96,6 +118,36 @@ let config = AuthConfig::new()
 let auth = Auth::new(config).await;
 ```
 
+## Supported Databases
+
+- MySql (credentials + sessions)
+- SurrealDB (credentials + sessions)
+- Redis (sessions only)
+
+## Testing
+
+### Setup
+
+Install docker and run make sure the daemon is running
+
+- [Link to docker](https://docs.docker.com/engine/install/)
+
+Fork this repo
+
+```cli
+gh repo fork xbrize/brize_auth
+```
+
+### Running Tests
+
+**All test scripts are in `./scripts` but feel free to make your own. You will need to chmod +x to the script files.**
+
+After giving permission to execute, simply run them. Each is designed to spin up docker containers that are hosting generic databases. These are then used to run the tests against.
+
+```bash
+scripts/tests/<desired_script>.sh
+```
+
 ## Roadmap
 
 - [x] User Registration
@@ -110,13 +162,11 @@ let auth = Auth::new(config).await;
 - [x] Session Management
   - [x] Create session
   - [x] Validate session
-  - [ ] Delete sessions based on age and other edge cases
-- [ ] Logout
-  - [ ] Match user credentials and/or session token
-  - [ ] Delete users session
+  - [x] Delete sessions based on age and logout
+- [x] Logout
+  - [x] Delete users session
 - [ ] Change Credentials
   - [ ] Update user_identity
   - [ ] Update user_password
-  - [ ] Decide what to return
 - [ ] Delete User
-  - [ ] Remove credentials from database
+  - [ ] Remove credentials and session from database

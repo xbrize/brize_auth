@@ -90,10 +90,17 @@ impl SessionRepository for MySqlGateway {
         Ok(session)
     }
 
-    async fn delete_session(
-        &mut self,
-        _session_record_id: &SessionRecordId,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn delete_session(&mut self, session_id: &SessionRecordId) -> Result<(), Box<dyn Error>> {
+        sqlx::query(
+            r#"
+        DELETE FROM sessions 
+        WHERE id = ?
+        "#,
+        )
+        .bind(session_id)
+        .execute(&self.pool)
+        .await?;
+
         Ok(())
     }
 }
@@ -163,9 +170,9 @@ impl CredentialsRepository for MySqlGateway {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::Expiry;
 
     use super::*;
+    use crate::domain::Expiry;
 
     #[tokio::test]
     async fn test_mysql_session_repo() {
@@ -186,6 +193,10 @@ mod tests {
         let session_from_repo = repo.get_session_by_id(&session.id).await.unwrap();
         assert_eq!(session_from_repo.is_expired(), false);
         assert_eq!(session_from_repo.id, session.id);
+
+        repo.delete_session(&session.id).await.unwrap();
+        let session_from_repo = repo.get_session_by_id(&session.id).await;
+        assert!(session_from_repo.is_err());
     }
 
     #[tokio::test]

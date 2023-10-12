@@ -175,6 +175,10 @@ mod tests {
         let session_from_storage = repo.get_session_by_id(&session.id).await.unwrap();
         assert!(!session_from_storage.is_expired());
         assert_eq!(session_from_storage.id, session.id);
+
+        repo.delete_session(&session.id).await.unwrap();
+        let session_from_repo = repo.get_session_by_id(&session.id).await;
+        assert!(session_from_repo.is_err());
     }
 
     #[tokio::test]

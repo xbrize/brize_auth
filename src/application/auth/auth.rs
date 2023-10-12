@@ -126,6 +126,19 @@ impl Auth {
         }
     }
 
+    pub async fn logout(&mut self, session_token: &str) -> Result<(), Box<dyn Error>> {
+        match self.session_gateway {
+            Some(ref mut gateway) => {
+                gateway.delete_session(&session_token.to_string()).await?;
+                Ok(())
+            }
+            None => Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotConnected,
+                "Session gateway not configured",
+            ))),
+        }
+    }
+
     async fn match_credentials(&self, email: &str, password: &str) -> bool {
         match self
             .credentials_gateway
@@ -197,14 +210,22 @@ impl Auth {
             }
             SessionType::Session(_) => match self.session_gateway {
                 Some(ref mut gateway) => {
-                    let session = gateway
-                        .get_session_by_id(&session_token.to_string())
-                        .await?;
-                    if session.is_expired() {
-                        gateway.delete_session(&session_token.to_string()).await?;
-                        Ok(false)
-                    } else {
-                        Ok(true)
+                    let attempt_to_get_session =
+                        gateway.get_session_by_id(&session_token.to_string()).await;
+
+                    match attempt_to_get_session {
+                        Ok(session) => {
+                            if session.is_expired() {
+                                gateway.delete_session(&session_token.to_string()).await?;
+                                Ok(false)
+                            } else {
+                                Ok(true)
+                            }
+                        }
+                        Err(_) => {
+                            println!("Failed to get session during validation");
+                            Ok(false)
+                        }
                     }
                 }
                 None => Err(Box::new(std::io::Error::new(
@@ -212,9 +233,9 @@ impl Auth {
                     "Session not enabled",
                 ))),
             },
-            _ => Err(Box::new(std::io::Error::new(
+            SessionType::None => Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                "Session not enabled",
+                "Session type set to none",
             ))),
         }
     }
@@ -249,9 +270,10 @@ mod tests {
             user_name: "root".to_string(),
             password: "my-secret-pw".to_string(),
         };
-        // let repo = MySqlGateway::new(&db_config).await;
-        // repo.create_credentials_table().await;
-        // repo.create_session_table().await;
+
+        let repo = MySqlGateway::new(&db_config).await;
+        repo.create_credentials_table().await;
+        repo.create_session_table().await;
 
         let config = AuthConfig::new()
             .set_credentials_gateway(GatewayType::MySql(db_config))
@@ -267,6 +289,10 @@ mod tests {
         let session = auth.login(user_identity, raw_password).await.unwrap();
         let validation = auth.validate_session(session.as_str()).await.unwrap();
         assert!(validation);
+
+        auth.logout(&session).await.unwrap();
+        let validation = auth.validate_session(session.as_str()).await.unwrap();
+        assert!(!validation)
     }
 
     #[tokio::test]
@@ -292,5 +318,9 @@ mod tests {
         let session = auth.login(user_identity, raw_password).await.unwrap();
         let validation = auth.validate_session(session.as_str()).await.unwrap();
         assert!(validation);
+
+        auth.logout(&session).await.unwrap();
+        let validation = auth.validate_session(session.as_str()).await.unwrap();
+        assert!(!validation)
     }
 }

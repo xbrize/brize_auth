@@ -40,8 +40,9 @@ impl SessionRepository for RedisGateway {
 
     async fn delete_session(
         &mut self,
-        _session_record_id: &SessionRecordId,
+        session_record_id: &SessionRecordId,
     ) -> Result<(), Box<dyn Error>> {
+        self.conn.del(session_record_id).await?;
         Ok(())
     }
 }
@@ -60,14 +61,18 @@ mod test {
             db_name: "".to_string(),
         };
 
-        let mut redis_gateway = RedisGateway::new(&config).await;
+        let mut repo = RedisGateway::new(&config).await;
 
         let session = Session::new(Expiry::Day(1));
-        let query = redis_gateway.store_session(&session).await;
+        let query = repo.store_session(&session).await;
         assert!(query.is_ok());
 
-        let session_from_storage = redis_gateway.get_session_by_id(&session.id).await.unwrap();
+        let session_from_storage = repo.get_session_by_id(&session.id).await.unwrap();
         assert_eq!(session_from_storage.is_expired(), false);
         assert_eq!(session_from_storage.id, session.id);
+
+        repo.delete_session(&session.id).await.unwrap();
+        let session_from_repo = repo.get_session_by_id(&session.id).await;
+        assert!(session_from_repo.is_err());
     }
 }
