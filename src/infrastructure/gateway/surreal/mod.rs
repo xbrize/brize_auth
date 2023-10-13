@@ -48,48 +48,6 @@ impl SurrealGateway {
 
         Self { database: db }
     }
-
-    pub async fn update_user_identity(
-        &self,
-        current_identity: &str,
-        new_identity: &str,
-    ) -> Result<(), Box<dyn Error>> {
-        let sql = "
-            UPDATE credentials
-            SET user_identity = $new_identity
-            WHERE user_identity = $current_identity;
-        ";
-
-        self.database
-            .query(sql)
-            .bind(("new_identity", new_identity))
-            .bind(("current_identity", current_identity))
-            .await?;
-
-        Ok(())
-    }
-
-    pub async fn update_user_password(
-        &self,
-        user_identity: &str,
-        new_raw_password: &str,
-    ) -> Result<(), Box<dyn Error>> {
-        // TODO hash this
-        let new_hashed_password = new_raw_password;
-        let sql = "
-            UPDATE credentials
-            SET hashed_password = $new_hashed_password
-            WHERE user_identity = $user_identity;
-        ";
-
-        self.database
-            .query(sql)
-            .bind(("new_hashed_password", new_hashed_password))
-            .bind(("user_identity", user_identity))
-            .await?;
-
-        Ok(())
-    }
 }
 
 #[async_trait::async_trait]
@@ -188,6 +146,48 @@ impl CredentialsRepository for SurrealGateway {
         self.database
             .create::<Vec<SurrealCredentialRecord>>("credentials")
             .content(&credentials)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn update_user_identity(
+        &self,
+        current_identity: &str,
+        new_identity: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let sql = "
+            UPDATE credentials
+            SET user_identity = $new_identity
+            WHERE user_identity = $current_identity;
+        ";
+
+        self.database
+            .query(sql)
+            .bind(("new_identity", new_identity))
+            .bind(("current_identity", current_identity))
+            .await?;
+
+        Ok(())
+    }
+
+    async fn update_user_password(
+        &self,
+        user_identity: &str,
+        new_raw_password: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        // TODO hash this
+        let new_hashed_password = new_raw_password;
+        let sql = "
+            UPDATE credentials
+            SET hashed_password = $new_hashed_password
+            WHERE user_identity = $user_identity;
+        ";
+
+        self.database
+            .query(sql)
+            .bind(("new_hashed_password", new_hashed_password))
+            .bind(("user_identity", user_identity))
             .await?;
 
         Ok(())

@@ -52,47 +52,6 @@ impl MySqlGateway {
         .await
         .unwrap();
     }
-
-    pub async fn update_user_identity(
-        &self,
-        current_identity: &str,
-        new_identity: &str,
-    ) -> Result<(), Box<dyn Error>> {
-        sqlx::query(
-            r#"
-            UPDATE credentials
-            SET user_identity = ?
-            WHERE user_identity = ?
-            "#,
-        )
-        .bind(new_identity)
-        .bind(current_identity)
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
-    }
-
-    pub async fn update_user_password(
-        &self,
-        user_identity: &str,
-        new_raw_password: &str,
-    ) -> Result<(), Box<dyn Error>> {
-        // TODO hash password here
-        sqlx::query(
-            r#"
-            UPDATE credentials
-            SET hashed_password = ?
-            WHERE user_identity = ?
-            "#,
-        )
-        .bind(new_raw_password)
-        .bind(user_identity)
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
-    }
 }
 
 #[async_trait::async_trait]
@@ -206,6 +165,47 @@ impl CredentialsRepository for MySqlGateway {
                 _ => Err(Box::new(e)),
             },
         }
+    }
+
+    async fn update_user_identity(
+        &self,
+        current_identity: &str,
+        new_identity: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        sqlx::query(
+            r#"
+            UPDATE credentials
+            SET user_identity = ?
+            WHERE user_identity = ?
+            "#,
+        )
+        .bind(new_identity)
+        .bind(current_identity)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+
+    async fn update_user_password(
+        &self,
+        user_identity: &str,
+        new_raw_password: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        // TODO hash password here
+        sqlx::query(
+            r#"
+            UPDATE credentials
+            SET hashed_password = ?
+            WHERE user_identity = ?
+            "#,
+        )
+        .bind(new_raw_password)
+        .bind(user_identity)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
     }
 }
 
