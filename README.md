@@ -165,8 +165,8 @@ scripts/tests/<desired_script>.sh
   - [x] Delete sessions based on age and logout
 - [x] Logout
   - [x] Delete users session
-- [ ] Change Credentials
-  - [ ] Update user_identity
-  - [ ] Update user_password
+- [x] Change Credentials
+  - [x] Update user_identity
+  - [x] Update user_password
 - [ ] Delete User
   - [ ] Remove credentials and session from database

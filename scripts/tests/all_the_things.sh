@@ -6,3 +6,4 @@ sleep 5;
 cargo test;
 docker kill surreal_db;
 docker kill redis_db;
+docker kill sql_db;

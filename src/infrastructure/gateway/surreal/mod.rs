@@ -48,6 +48,48 @@ impl SurrealGateway {
 
         Self { database: db }
     }
+
+    pub async fn update_user_identity(
+        &self,
+        current_identity: &str,
+        new_identity: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let sql = "
+            UPDATE credentials
+            SET user_identity = $new_identity
+            WHERE user_identity = $current_identity;
+        ";
+
+        self.database
+            .query(sql)
+            .bind(("new_identity", new_identity))
+            .bind(("current_identity", current_identity))
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn update_user_password(
+        &self,
+        user_identity: &str,
+        new_raw_password: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        // TODO hash this
+        let new_hashed_password = new_raw_password;
+        let sql = "
+            UPDATE credentials
+            SET hashed_password = $new_hashed_password
+            WHERE user_identity = $user_identity;
+        ";
+
+        self.database
+            .query(sql)
+            .bind(("new_hashed_password", new_hashed_password))
+            .bind(("user_identity", user_identity))
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
@@ -129,23 +171,23 @@ impl CredentialsRepository for SurrealGateway {
 
     async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials, Box<dyn Error>> {
         let cred_record: Option<SurrealCredentialRecord> =
-            self.database.select(("session", id)).await?;
+            self.database.select(("credentials", id)).await?;
 
         if let Some(record) = cred_record {
-            let cred = Credentials::new(&record.user_identity, &record.hashed_password);
+            let cred = record.into_credentials();
             return Ok(cred);
         } else {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                "No Credentials record found",
+                "Credentials record not found",
             )));
         }
     }
 
-    async fn insert_credentials(&self, user: &Credentials) -> Result<(), Box<dyn Error>> {
+    async fn insert_credentials(&self, credentials: &Credentials) -> Result<(), Box<dyn Error>> {
         self.database
             .create::<Vec<SurrealCredentialRecord>>("credentials")
-            .content(&user)
+            .content(&credentials)
             .await?;
 
         Ok(())
@@ -202,5 +244,20 @@ mod tests {
         // Test getting creds
         let user_cred = repo.find_credentials_by_user_identity(email).await.unwrap();
         assert_eq!(user_cred.unwrap().user_identity, email);
+
+        // Test changing credentials
+        let new_identity = "updatedidentity@gmail.com";
+        let new_password = "the-updated-password";
+        repo.update_user_identity(&creds.user_identity, new_identity)
+            .await
+            .unwrap();
+        repo.update_user_password(&new_identity, new_password)
+            .await
+            .unwrap();
+
+        let creds = repo.find_credentials_by_id(&creds.id).await.unwrap();
+        assert_eq!(creds.user_identity, new_identity);
+        // TODO this will fail after hashing password
+        assert_eq!(creds.hashed_password, new_password);
     }
 }
