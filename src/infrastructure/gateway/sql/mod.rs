@@ -207,6 +207,23 @@ impl CredentialsRepository for MySqlGateway {
 
         Ok(())
     }
+
+    async fn delete_credentials_by_user_identity(
+        &self,
+        user_identity: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        sqlx::query(
+            r#"
+            DELETE FROM credentials
+            WHERE user_identity = ?
+            "#,
+        )
+        .bind(user_identity)
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -277,5 +294,12 @@ mod tests {
         assert_eq!(creds.user_identity, new_identity);
         // TODO this will fail after hashing password
         assert_eq!(creds.hashed_password, new_password);
+
+        // Delete credentials
+        repo.delete_credentials_by_user_identity(&creds.user_identity)
+            .await
+            .unwrap();
+        let creds = repo.find_credentials_by_id(&credentials.id).await;
+        assert!(creds.is_err());
     }
 }

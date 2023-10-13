@@ -23,4 +23,9 @@ pub trait CredentialsRepository {
         user_identity: &str,
         new_raw_password: &str,
     ) -> Result<(), Box<dyn Error>>;
+
+    async fn delete_credentials_by_user_identity(
+        &self,
+        user_identity: &str,
+    ) -> Result<(), Box<dyn Error>>;
 }
