@@ -1,6 +1,6 @@
 use crate::application::interface::{CredentialsRepository, SessionRepository};
 use crate::domain::config::DatabaseConfig;
-use crate::domain::entity::{Credentials, Session, SessionRecordId};
+use crate::domain::entity::{Credentials, Session, SessionId};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use surrealdb::engine::remote::ws::{Client, Ws};
@@ -53,7 +53,7 @@ impl SurrealGateway {
 impl SessionRepository for SurrealGateway {
     async fn get_session_by_id(
         &mut self,
-        session_record_id: &SessionRecordId,
+        session_record_id: &SessionId,
     ) -> Result<Session, Box<dyn Error>> {
         let session: Option<SurrealSessionRecord> =
             self.database.select(("session", session_record_id)).await?;
@@ -83,7 +83,7 @@ impl SessionRepository for SurrealGateway {
 
     async fn delete_session(
         &mut self,
-        session_record_id: &SessionRecordId,
+        session_record_id: &SessionId,
     ) -> Result<(), Box<dyn Error>> {
         self.database
             .delete::<Option<SurrealSessionRecord>>(("session", session_record_id))

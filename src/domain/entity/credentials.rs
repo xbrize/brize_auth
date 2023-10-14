@@ -7,6 +7,8 @@ pub type CredentialsId = String;
 pub struct Credentials {
     pub id: CredentialsId,
     pub user_identity: String,
+
+    #[serde(skip_serializing)]
     pub hashed_password: String,
 }
 

@@ -10,7 +10,7 @@ use crate::{
         command::{generate_json_web_token, hash_raw_password, verify_json_web_token},
         interface::{CredentialsRepository, SessionRepository},
     },
-    domain::entity::{Claims, Credentials, CredentialsId, Session, SessionRecordId},
+    domain::entity::{Claims, Credentials, CredentialsId, Session, SessionId},
     infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
 };
 use std::error::Error;
@@ -120,7 +120,7 @@ impl Auth {
         &mut self,
         user_identity: &str,
         raw_password: &str,
-    ) -> Result<SessionRecordId, Box<dyn Error>> {
+    ) -> Result<SessionId, Box<dyn Error>> {
         if self.match_credentials(user_identity, raw_password).await {
             let session_record_id = self.start_session(user_identity).await?;
             Ok(session_record_id)
@@ -174,7 +174,7 @@ impl Auth {
     pub async fn start_session(
         &mut self,
         user_identity: &str,
-    ) -> Result<SessionRecordId, Box<dyn Error>> {
+    ) -> Result<SessionId, Box<dyn Error>> {
         match &self.session_type {
             SessionType::JWT(duration) => {
                 let claims = Claims::new(user_identity, duration);

@@ -5,7 +5,7 @@ use redis::AsyncCommands;
 
 use crate::application::interface::SessionRepository;
 use crate::domain::config::DatabaseConfig;
-use crate::domain::entity::{Session, SessionRecordId};
+use crate::domain::entity::{Session, SessionId};
 
 pub struct RedisGateway {
     conn: Connection,
@@ -31,7 +31,7 @@ impl SessionRepository for RedisGateway {
 
     async fn get_session_by_id(
         &mut self,
-        session_record_id: &SessionRecordId,
+        session_record_id: &SessionId,
     ) -> Result<Session, Box<dyn Error>> {
         let session_string: String = self.conn.get(session_record_id.to_string()).await?;
         let session: Session = serde_json::from_str(&session_string)?;
@@ -41,7 +41,7 @@ impl SessionRepository for RedisGateway {
 
     async fn delete_session(
         &mut self,
-        session_record_id: &SessionRecordId,
+        session_record_id: &SessionId,
     ) -> Result<(), Box<dyn Error>> {
         self.conn.del(session_record_id).await?;
         Ok(())
