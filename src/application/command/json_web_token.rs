@@ -1,4 +1,4 @@
-use crate::domain::Claims;
+use crate::domain::entity::Claims;
 use anyhow::{Context, Result};
 use dotenvy::dotenv;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
@@ -36,7 +36,7 @@ pub fn verify_json_web_token(token: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::Expiry;
+    use crate::domain::config::Expiry;
 
     use super::*;
 

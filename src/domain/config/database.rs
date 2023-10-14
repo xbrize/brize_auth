@@ -4,9 +4,3 @@ pub struct DatabaseConfig {
     pub user_name: String,
     pub host: String,
 }
-
-pub enum GatewayType {
-    MySql(DatabaseConfig),
-    Surreal(DatabaseConfig),
-    Redis(DatabaseConfig),
-}

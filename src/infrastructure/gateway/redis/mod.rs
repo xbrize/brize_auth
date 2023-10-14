@@ -4,7 +4,8 @@ use redis::aio::Connection;
 use redis::AsyncCommands;
 
 use crate::application::SessionRepository;
-use crate::domain::{DatabaseConfig, Session, SessionRecordId};
+use crate::domain::config::DatabaseConfig;
+use crate::domain::entity::{Session, SessionRecordId};
 
 pub struct RedisGateway {
     conn: Connection,
@@ -49,8 +50,9 @@ impl SessionRepository for RedisGateway {
 
 #[cfg(test)]
 mod test {
+    use crate::domain::config::Expiry;
+
     use super::*;
-    use crate::domain::Expiry;
 
     #[tokio::test]
     async fn test_redis_gateway() {

@@ -1,2 +1,2 @@
-mod entity;
-pub use entity::*;
+pub mod config;
+pub mod entity;

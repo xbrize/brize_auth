@@ -1,4 +1,4 @@
-use super::Expiry;
+use crate::domain::config::Expiry;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]

@@ -1,4 +1,4 @@
-use crate::domain::Credentials;
+use crate::domain::entity::Credentials;
 use std::error::Error;
 
 #[async_trait::async_trait]

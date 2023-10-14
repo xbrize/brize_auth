@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::domain::{Session, SessionRecordId};
+use crate::domain::entity::{Session, SessionRecordId};
 use async_trait::async_trait;
 
 #[async_trait]

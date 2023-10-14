@@ -5,7 +5,8 @@ use crate::{
         CredentialsRepository, SessionRepository,
     },
     domain::{
-        Claims, Credentials, CredentialsId, GatewayType, Session, SessionRecordId, SessionType,
+        config::{GatewayType, SessionType},
+        entity::{Claims, Credentials, CredentialsId, Session, SessionRecordId},
     },
     infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
 };
@@ -244,7 +245,7 @@ impl Auth {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::{DatabaseConfig, Expiry};
+    use crate::domain::config::{DatabaseConfig, Expiry};
 
     use super::*;
 

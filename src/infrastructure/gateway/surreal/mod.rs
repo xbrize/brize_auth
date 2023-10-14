@@ -6,7 +6,8 @@ use surrealdb::sql::Thing;
 use surrealdb::Surreal;
 
 use crate::application::{CredentialsRepository, SessionRepository};
-use crate::domain::{Credentials, DatabaseConfig, Session, SessionRecordId};
+use crate::domain::config::DatabaseConfig;
+use crate::domain::entity::{Credentials, Session, SessionRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {
@@ -213,7 +214,7 @@ impl CredentialsRepository for SurrealGateway {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::Expiry;
+    use crate::domain::config::Expiry;
 
     use super::*;
 

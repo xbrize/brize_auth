@@ -1,19 +1,13 @@
-use super::Expiry;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
+use crate::domain::config::Expiry;
 pub type SessionRecordId = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum SessionState {
     Valid,
     Invalid,
-}
-
-pub enum SessionType {
-    JWT(Expiry),
-    Session(Expiry),
-    None,
 }
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]

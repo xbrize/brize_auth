@@ -2,7 +2,10 @@ use std::error::Error;
 
 use crate::{
     application::{CredentialsRepository, SessionRepository},
-    domain::{Credentials, DatabaseConfig, Session, SessionRecordId},
+    domain::{
+        config::DatabaseConfig,
+        entity::{Credentials, Session, SessionRecordId},
+    },
 };
 use sqlx::mysql::MySqlPool;
 
@@ -228,9 +231,9 @@ impl CredentialsRepository for MySqlGateway {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::config::Expiry;
 
     use super::*;
-    use crate::domain::Expiry;
 
     #[tokio::test]
     async fn test_mysql_session_repo() {
