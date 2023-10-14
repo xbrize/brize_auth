@@ -1,9 +1,9 @@
 [package]
 name = "brize_auth"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 authors=["Jonathan Karrer <karrerjon@gmail.com>"]
-description = "A minimal async auth and session library for MySql and SurrealDB"
+description = "A minimalistic and async authentication library."
 license = "MIT/Apache-2.0"
 repository = "https://github.com/xbrize/brize_auth"
 readme = "README.md"

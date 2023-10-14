@@ -1,8 +1,8 @@
-# Brize Auth :construction:
+# Brize Auth
 
 A minimalistic and async authentication library.
 
-Still a WIP, not in a usable state. Roadmap at bottom.
+Still a WIP, not production ready. Roadmap at bottom.
 
 ## Setup
 
@@ -18,8 +18,8 @@ Next, set up the database tables with this schema
 -- Credentials table
 CREATE TABLE credentials (
     id CHAR(36) PRIMARY KEY,
-    user_identity CHAR(36) NOT NULL,
-    hashed_password CHAR(36) NOT NULL
+    user_identity VARCHAR(255) NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL
 );
 
 -- Sessions table
@@ -59,7 +59,7 @@ fn main {
     let raw_password = "plokij1234!";
 
     // Create a new set of credentials..
-    // .. returns the id of the credentials row, use this as a foreign key on your user table
+    // .. returns the id of the credentials row, use this as some kind of reference key on YOUR user table
     let user_key: Option<String> = auth.register(user_identity, raw_password).await;
 
     // Log user in and get a session token back
@@ -150,6 +150,8 @@ scripts/tests/<desired_script>.sh
 
 ## Roadmap
 
+### Prototype phase
+
 - [x] User Registration
   - [x] Create user credentials if none exist
   - [x] Deny if user credentials does exist
@@ -158,7 +160,7 @@ scripts/tests/<desired_script>.sh
   - [x] Match user credentials
   - [x] Return session token if matched (if sessions enabled)
   - [x] Deny user if no match
-  - [ ] Hash password
+  - [x] Hash password
 - [x] Session Management
   - [x] Create session
   - [x] Validate session
@@ -170,3 +172,9 @@ scripts/tests/<desired_script>.sh
   - [x] Update user_password
 - [x] Delete User
   - [x] Remove credentials and session from database
+
+### Production testing phase
+
+- [] Benchmarking
+- [] Penetration testing
+- [] Code Reviews
