@@ -1,5 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+/// A utility for creating expiration times in UNIX_EPOCH format
 pub enum Expiry {
     Second(u64),
     Day(u64),
@@ -9,6 +10,7 @@ pub enum Expiry {
 }
 
 impl Expiry {
+    /// Unwraps the count and converts to the UNIX_EPOCH expiration time
     pub fn time(&self) -> u64 {
         match self {
             Expiry::Second(count) => Self::set_expiration(*count),
@@ -19,25 +21,27 @@ impl Expiry {
         }
     }
 
+    /// Current time in UNIX_EPOCH
     pub fn now() -> u64 {
         Self::current_time_in_epoch()
     }
 
-    pub fn current_time_in_epoch() -> u64 {
-        let start = SystemTime::now();
-        let since_the_epoch = start
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards");
-
-        since_the_epoch.as_secs()
-    }
-
+    /// Checks if this Expiry has become expired
     pub fn is_expired(&self) -> bool {
         self.time() < Self::current_time_in_epoch()
     }
 
     fn set_expiration(seconds: u64) -> u64 {
         Self::current_time_in_epoch() + seconds
+    }
+
+    fn current_time_in_epoch() -> u64 {
+        let start = SystemTime::now();
+        let since_the_epoch = start
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards");
+
+        since_the_epoch.as_secs()
     }
 
     fn day_expiry(count: u64) -> u64 {
