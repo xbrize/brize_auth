@@ -1,12 +1,14 @@
 use super::AuthConfig;
 use crate::{
-    application::{CredentialsRepository, SessionRepository},
+    application::{
+        command::{generate_json_web_token, verify_json_web_token},
+        CredentialsRepository, SessionRepository,
+    },
     domain::{
         Claims, Credentials, CredentialsId, GatewayType, Session, SessionRecordId, SessionType,
     },
     infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
 };
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use std::error::Error;
 
 pub struct Auth {
@@ -15,7 +17,6 @@ pub struct Auth {
     session_type: SessionType,
 }
 
-static SECRET: &'static str = "super_secret_key";
 impl Auth {
     pub async fn new(auth_config: AuthConfig) -> Result<Self, Box<dyn Error>> {
         // ** Credentials config
@@ -173,7 +174,7 @@ impl Auth {
         match self.session_type {
             SessionType::JWT(duration) => {
                 let claims = Claims::new(user_identity, duration);
-                let token = Self::encode_token(claims)?;
+                let token = generate_json_web_token(claims)?;
 
                 Ok(token)
             }
@@ -200,7 +201,7 @@ impl Auth {
     pub async fn validate_session(&mut self, session_token: &str) -> Result<bool, Box<dyn Error>> {
         match self.session_type {
             SessionType::JWT(_) => {
-                let valid = Self::decode_token(&session_token);
+                let valid = verify_json_web_token(session_token);
 
                 if valid.is_ok() {
                     Ok(true)
@@ -238,21 +239,6 @@ impl Auth {
                 "Session type set to none",
             ))),
         }
-    }
-
-    pub fn encode_token(claims: Claims) -> Result<String, jsonwebtoken::errors::Error> {
-        let header = Header::new(Algorithm::HS256);
-        encode(&header, &claims, &EncodingKey::from_secret(SECRET.as_ref()))
-    }
-
-    pub fn decode_token(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
-        let validation = Validation::new(Algorithm::HS256);
-        decode::<Claims>(
-            &token,
-            &DecodingKey::from_secret(SECRET.as_ref()),
-            &validation,
-        )
-        .map(|c| c.claims)
     }
 }
 

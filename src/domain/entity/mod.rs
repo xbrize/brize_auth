@@ -4,8 +4,8 @@ pub use credentials::*;
 mod session;
 pub use session::*;
 
-mod claim;
-pub use claim::*;
+mod claims;
+pub use claims::*;
 
 mod expiry;
 pub use expiry::*;
