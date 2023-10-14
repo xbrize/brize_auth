@@ -43,8 +43,8 @@ impl MySqlGateway {
             r#"
             CREATE TABLE credentials (
                 id CHAR(36) PRIMARY KEY,
-                user_identity CHAR(36) NOT NULL,
-                hashed_password CHAR(36) NOT NULL
+                user_identity VARCHAR(255) NOT NULL,
+                hashed_password VARCHAR(255) NOT NULL
             );
             "#,
         )

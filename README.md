@@ -168,5 +168,5 @@ scripts/tests/<desired_script>.sh
 - [x] Change Credentials
   - [x] Update user_identity
   - [x] Update user_password
-- [ ] Delete User
-  - [ ] Remove credentials and session from database
+- [x] Delete User
+  - [x] Remove credentials and session from database

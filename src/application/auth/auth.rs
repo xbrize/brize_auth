@@ -94,7 +94,7 @@ impl Auth {
                 }
                 None => {
                     println!("New User Created");
-                    let credentials = Credentials::new(user_identity, raw_password);
+                    let credentials = Credentials::new(user_identity, raw_password).hash_password();
                     self.credentials_gateway
                         .insert_credentials(&credentials)
                         .await
@@ -113,9 +113,9 @@ impl Auth {
     pub async fn login(
         &mut self,
         user_identity: &str,
-        password: &str,
+        raw_password: &str,
     ) -> Result<SessionRecordId, Box<dyn Error>> {
-        if self.match_credentials(user_identity, password).await {
+        if self.match_credentials(user_identity, raw_password).await {
             let session_record_id = self.start_session(user_identity).await?;
             Ok(session_record_id)
         } else {
@@ -139,15 +139,15 @@ impl Auth {
         }
     }
 
-    async fn match_credentials(&self, email: &str, password: &str) -> bool {
+    async fn match_credentials(&self, user_identity: &str, raw_password: &str) -> bool {
         match self
             .credentials_gateway
-            .find_credentials_by_user_identity(&email)
+            .find_credentials_by_user_identity(&user_identity)
             .await
         {
             Ok(credentials_query) => match credentials_query {
                 Some(credentials) => {
-                    if credentials.match_password(password) {
+                    if credentials.verify_password(raw_password) {
                         true
                     } else {
                         println!("Password Did Not Match");
