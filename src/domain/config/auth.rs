@@ -1,4 +1,23 @@
-use super::{GatewayType, SessionType};
+use super::Expiry;
+
+pub enum SessionType {
+    JWT(Expiry),
+    Session(Expiry),
+    None,
+}
+
+pub struct DatabaseConfig {
+    pub db_name: String,
+    pub password: String,
+    pub user_name: String,
+    pub host: String,
+}
+
+pub enum GatewayType {
+    MySql(DatabaseConfig),
+    Surreal(DatabaseConfig),
+    Redis(DatabaseConfig),
+}
 
 pub struct AuthConfig {
     pub credentials_gateway: Option<GatewayType>,
