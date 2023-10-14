@@ -2,11 +2,12 @@ mod application;
 mod domain;
 mod infrastructure;
 
+use application::command::verify_password;
 pub use domain::config::{AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
 
 use crate::{
     application::{
-        command::{generate_json_web_token, verify_json_web_token},
+        command::{generate_json_web_token, hash_raw_password, verify_json_web_token},
         interface::{CredentialsRepository, SessionRepository},
     },
     domain::entity::{Claims, Credentials, CredentialsId, Session, SessionRecordId},
@@ -97,13 +98,14 @@ impl Auth {
                     return None;
                 }
                 None => {
-                    println!("New User Created");
-                    let credentials = Credentials::new(user_identity, raw_password).hash_password();
+                    let hashed_password = hash_raw_password(raw_password).unwrap();
+                    let credentials = Credentials::new(user_identity, hashed_password.as_str());
                     self.credentials_gateway
                         .insert_credentials(&credentials)
                         .await
                         .unwrap();
 
+                    println!("New User Created");
                     return Some(credentials.id);
                 }
             },
@@ -151,10 +153,9 @@ impl Auth {
         {
             Ok(credentials_query) => match credentials_query {
                 Some(credentials) => {
-                    if credentials.verify_password(raw_password) {
+                    if verify_password(raw_password, &credentials.hashed_password).is_ok() {
                         true
                     } else {
-                        println!("Password Did Not Match");
                         false
                     }
                 }

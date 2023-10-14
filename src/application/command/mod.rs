@@ -1,2 +1,5 @@
-mod json_web_token;
-pub use json_web_token::*;
+mod jwt;
+pub use jwt::*;
+
+mod password;
+pub use password::*;
