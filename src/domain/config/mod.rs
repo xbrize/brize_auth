@@ -4,6 +4,9 @@ pub use database::*;
 mod expiry;
 pub use expiry::*;
 
+mod auth;
+pub use auth::AuthConfig;
+
 mod gateway_type;
 pub use gateway_type::*;
 

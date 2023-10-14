@@ -1,4 +1,4 @@
-use crate::domain::config::{GatewayType, SessionType};
+use super::{GatewayType, SessionType};
 
 pub struct AuthConfig {
     pub credentials_gateway: Option<GatewayType>,

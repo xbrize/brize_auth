@@ -1,13 +1,11 @@
-use std::error::Error;
-
+use crate::application::interface::{CredentialsRepository, SessionRepository};
+use crate::domain::config::DatabaseConfig;
+use crate::domain::entity::{Credentials, Session, SessionRecordId};
 use serde::{Deserialize, Serialize};
+use std::error::Error;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
-
-use crate::application::{CredentialsRepository, SessionRepository};
-use crate::domain::config::DatabaseConfig;
-use crate::domain::entity::{Credentials, Session, SessionRecordId};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {

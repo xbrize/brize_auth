@@ -3,7 +3,7 @@ use std::error::Error;
 use redis::aio::Connection;
 use redis::AsyncCommands;
 
-use crate::application::SessionRepository;
+use crate::application::interface::SessionRepository;
 use crate::domain::config::DatabaseConfig;
 use crate::domain::entity::{Session, SessionRecordId};
 

@@ -1,13 +1,12 @@
-use std::error::Error;
-
 use crate::{
-    application::{CredentialsRepository, SessionRepository},
+    application::interface::{CredentialsRepository, SessionRepository},
     domain::{
         config::DatabaseConfig,
         entity::{Credentials, Session, SessionRecordId},
     },
 };
 use sqlx::mysql::MySqlPool;
+use std::error::Error;
 
 pub struct MySqlGateway {
     pub pool: MySqlPool,
