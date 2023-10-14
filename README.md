@@ -2,7 +2,7 @@
 
 A minimalistic and async authentication library.
 
-Still a WIP, not production ready. Roadmap at bottom.
+Still a Work In Progress. Is now in a usable state, but not for production. Roadmap at bottom.
 
 ## Setup
 
@@ -34,7 +34,7 @@ CREATE TABLE sessions (
 ## Usage
 
 ```rust
-use brize_auth::{Auth, AuthConfig, GatewayType, DatabaseConfig, Expiry};
+use brize_auth::{Auth, AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
 
 #[tokio::main]
 fn main {
@@ -78,7 +78,7 @@ fn main {
 The preferred database and session type can be configured to your use case.
 
 ```rust
-use brize_auth::{Auth, AuthConfig, GatewayType, DatabaseConfig, Expiry};
+use brize_auth::{Auth, AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
 
 pub struct DatabaseConfig {
     pub db_name: String,
@@ -175,6 +175,7 @@ scripts/tests/<desired_script>.sh
 
 ### Production testing phase
 
+- [] Code refactoring
 - [] Benchmarking
 - [] Penetration testing
 - [] Code Reviews

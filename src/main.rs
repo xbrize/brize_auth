@@ -1,7 +1,4 @@
-use brize_auth::{
-    application::{Auth, AuthConfig},
-    domain::{DatabaseConfig, Expiry, GatewayType, SessionType},
-};
+use brize_auth::{Auth, AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
 
 #[tokio::main]
 async fn main() {
@@ -11,9 +8,7 @@ async fn main() {
         user_name: "root".to_string(),
         password: "my-secret-pw".to_string(),
     };
-    // let repo = MySqlGateway::new(db_config).await;
-    // repo.create_credentials_table().await;
-    // repo.create_session_table().await;
+
     let config = AuthConfig::new()
         .set_credentials_gateway(GatewayType::MySql(db_config))
         .set_session_type(SessionType::Session(Expiry::Month(1)));
@@ -23,9 +18,9 @@ async fn main() {
     let user_identity = "test@gmail.com";
     let raw_password = "plokij1234!";
 
-    // let user_key = auth.register(user_identity, raw_password).await;
-    // dbg!(user_key);
+    let user_key = auth.register(user_identity, raw_password).await;
+    dbg!(user_key);
     let session = auth.login(user_identity, raw_password).await.unwrap();
-    let validation = auth.validate_session(session.as_str()).await;
+    let validation = auth.validate_session(session.as_str()).await.unwrap();
     dbg!(validation);
 }
