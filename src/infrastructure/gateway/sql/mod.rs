@@ -23,7 +23,7 @@ impl MySqlGateway {
         Self { pool }
     }
 
-    pub async fn create_session_table(&self) {
+    pub async fn _create_session_table(&self) {
         sqlx::query(
             r#"
             CREATE TABLE sessions (
@@ -38,7 +38,7 @@ impl MySqlGateway {
         .unwrap();
     }
 
-    pub async fn create_credentials_table(&self) {
+    pub async fn _create_credentials_table(&self) {
         sqlx::query(
             r#"
             CREATE TABLE credentials (
@@ -242,7 +242,7 @@ mod tests {
         };
 
         let mut repo = MySqlGateway::new(&db_config).await;
-        repo.create_session_table().await;
+        repo._create_session_table().await;
 
         let session = &Session::new(Expiry::Day(1));
         let query = repo.store_session(session).await;
@@ -267,7 +267,7 @@ mod tests {
         };
 
         let repo = MySqlGateway::new(&db_config).await;
-        repo.create_credentials_table().await;
+        repo._create_credentials_table().await;
 
         let password = "test-pass-word";
         let email = "test@email.com";

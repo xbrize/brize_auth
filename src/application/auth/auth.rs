@@ -272,8 +272,8 @@ mod tests {
         };
 
         let repo = MySqlGateway::new(&db_config).await;
-        repo.create_credentials_table().await;
-        repo.create_session_table().await;
+        repo._create_credentials_table().await;
+        repo._create_session_table().await;
 
         let config = AuthConfig::new()
             .set_credentials_gateway(GatewayType::MySql(db_config))
