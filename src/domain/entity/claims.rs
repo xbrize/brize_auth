@@ -8,7 +8,7 @@ pub struct Claims {
 }
 
 impl Claims {
-    pub fn new(user_identity: &str, expiry: Expiry) -> Self {
+    pub fn new(user_identity: &str, expiry: &Expiry) -> Self {
         Self {
             sub: user_identity.to_string(),
             exp: expiry.time(),

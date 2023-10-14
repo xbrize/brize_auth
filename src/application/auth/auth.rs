@@ -171,7 +171,7 @@ impl Auth {
         &mut self,
         user_identity: &str,
     ) -> Result<SessionRecordId, Box<dyn Error>> {
-        match self.session_type {
+        match &self.session_type {
             SessionType::JWT(duration) => {
                 let claims = Claims::new(user_identity, duration);
                 let token = generate_json_web_token(claims)?;

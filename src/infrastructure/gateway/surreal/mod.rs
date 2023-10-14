@@ -227,7 +227,7 @@ mod tests {
         };
         let mut repo = SurrealGateway::new(&db_config).await;
 
-        let session = Session::new(Expiry::Day(1));
+        let session = Session::new(&Expiry::Day(1));
         let query = repo.store_session(&session).await;
         assert!(query.is_ok());
 

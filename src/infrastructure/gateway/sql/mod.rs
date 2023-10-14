@@ -244,7 +244,7 @@ mod tests {
         let mut repo = MySqlGateway::new(&db_config).await;
         repo._create_session_table().await;
 
-        let session = &Session::new(Expiry::Day(1));
+        let session = &Session::new(&Expiry::Day(1));
         let query = repo.store_session(session).await;
         assert!(query.is_ok());
 

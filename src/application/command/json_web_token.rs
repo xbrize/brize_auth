@@ -36,11 +36,13 @@ pub fn verify_json_web_token(token: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use crate::Expiry;
+
     use super::*;
 
     #[test]
     fn test_jwt_token_command() {
-        let claims = Claims::new("user_identity", crate::Expiry::Day(1));
+        let claims = Claims::new("user_identity", &Expiry::Day(1));
         let token = generate_json_web_token(claims).unwrap();
         let attempt_to_verify = verify_json_web_token(token.as_str());
         assert!(attempt_to_verify.is_ok());

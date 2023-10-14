@@ -10,7 +10,6 @@ pub enum SessionState {
     Invalid,
 }
 
-#[derive(Clone, Copy)]
 pub enum SessionType {
     JWT(Expiry),
     Session(Expiry),
@@ -25,7 +24,7 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn new(session_duration: Expiry) -> Self {
+    pub fn new(session_duration: &Expiry) -> Self {
         let now = Expiry::now();
         let duration = session_duration.time();
 
@@ -47,7 +46,7 @@ mod tests {
 
     #[test]
     fn test_session_entity() {
-        let session = Session::new(Expiry::Second(1));
+        let session = Session::new(&Expiry::Second(1));
         assert!(!session.is_expired());
     }
 }
