@@ -1,6 +1,7 @@
-use crate::domain::config::Expiry;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+
+use crate::domain::config::Expiry;
 
 pub type SessionId = String;
 

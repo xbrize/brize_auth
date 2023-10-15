@@ -1,11 +1,14 @@
+use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
+use surrealdb::{
+    engine::remote::ws::{Client, Ws},
+    sql::Thing,
+    Surreal,
+};
+
 use crate::application::interface::{CredentialsRepository, SessionRepository};
 use crate::domain::config::DatabaseConfig;
 use crate::domain::entity::{Credentials, Session, SessionId};
-use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
-use surrealdb::engine::remote::ws::{Client, Ws};
-use surrealdb::sql::Thing;
-use surrealdb::Surreal;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SurrealSessionRecord {

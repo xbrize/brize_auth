@@ -1,5 +1,6 @@
-use crate::domain::config::Expiry;
 use serde::{Deserialize, Serialize};
+
+use crate::domain::config::Expiry;
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims {

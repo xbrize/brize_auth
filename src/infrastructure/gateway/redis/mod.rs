@@ -11,13 +11,15 @@ pub struct RedisGateway {
 }
 
 impl RedisGateway {
-    pub async fn new(config: &DatabaseConfig) -> Self {
+    pub async fn new(config: &DatabaseConfig) -> Result<Self> {
         let addr = format!("redis://:{}@{}/", config.password, config.host);
-        // TODO handle error cases
-        let client = redis::Client::open(addr).unwrap();
-        let conn = client.get_async_connection().await.unwrap();
+        let client = redis::Client::open(addr).context("Failed to connect to Redis client")?;
+        let conn = client
+            .get_async_connection()
+            .await
+            .context("Failed to make Redis async")?;
 
-        Self { conn }
+        Ok(Self { conn })
     }
 }
 
@@ -59,9 +61,8 @@ impl SessionRepository for RedisGateway {
 
 #[cfg(test)]
 mod test {
-    use crate::domain::config::Expiry;
-
     use super::*;
+    use crate::domain::config::Expiry;
 
     #[tokio::test]
     async fn test_redis_gateway() {
@@ -72,7 +73,7 @@ mod test {
             db_name: "".to_string(),
         };
 
-        let mut repo = RedisGateway::new(&config).await;
+        let mut repo = RedisGateway::new(&config).await.unwrap();
 
         let session = Session::new(&Expiry::Day(1));
         let query = repo.store_session(&session).await;

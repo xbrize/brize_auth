@@ -1,19 +1,20 @@
 mod application;
 mod domain;
 mod infrastructure;
-
-use application::command::verify_password;
 pub use domain::config::{AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
+
+use anyhow::{Context, Result};
 
 use crate::{
     application::{
-        command::{generate_json_web_token, hash_raw_password, verify_json_web_token},
+        command::{
+            generate_json_web_token, hash_raw_password, verify_json_web_token, verify_password,
+        },
         interface::{CredentialsRepository, SessionRepository},
     },
     domain::entity::{Claims, Credentials, CredentialsId, Session, SessionId},
     infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
 };
-use anyhow::{Context, Result};
 
 pub struct Auth {
     credentials_gateway: Box<dyn CredentialsRepository>,
@@ -55,7 +56,9 @@ impl Auth {
                             Box::new(SurrealGateway::new(&config).await)
                         }
                         GatewayType::MySql(config) => Box::new(MySqlGateway::new(&config).await),
-                        GatewayType::Redis(config) => Box::new(RedisGateway::new(&config).await),
+                        GatewayType::Redis(config) => {
+                            Box::new(RedisGateway::new(&config).await.unwrap())
+                        }
                     },
                     None => match &credentials_gateway_config {
                         // Default case, make same as credentials gateway
@@ -63,7 +66,9 @@ impl Auth {
                             Box::new(SurrealGateway::new(&config).await)
                         }
                         GatewayType::MySql(config) => Box::new(MySqlGateway::new(&config).await),
-                        GatewayType::Redis(config) => Box::new(RedisGateway::new(&config).await),
+                        GatewayType::Redis(config) => {
+                            Box::new(RedisGateway::new(&config).await.unwrap())
+                        }
                     },
                 };
 

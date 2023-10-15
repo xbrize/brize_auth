@@ -1,3 +1,6 @@
+use anyhow::{Context, Result};
+use sqlx::mysql::MySqlPool;
+
 use crate::{
     application::{
         command::hash_raw_password,
@@ -8,8 +11,6 @@ use crate::{
         entity::{Credentials, Session, SessionId},
     },
 };
-use anyhow::{Context, Result};
-use sqlx::mysql::MySqlPool;
 
 pub struct MySqlGateway {
     pub pool: MySqlPool,
