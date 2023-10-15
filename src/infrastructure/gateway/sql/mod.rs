@@ -217,7 +217,6 @@ impl CredentialsRepository for MySqlGateway {
         Ok(())
     }
 
-    // TODO test this
     async fn delete_credentials_by_id(&self, id: &str) -> Result<()> {
         sqlx::query(
             r#"

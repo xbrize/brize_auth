@@ -198,7 +198,6 @@ impl CredentialsRepository for SurrealGateway {
         Ok(())
     }
 
-    // TODO test
     async fn delete_credentials_by_id(&self, id: &str) -> Result<()> {
         let sql = "
             DELETE FROM credentials
@@ -274,7 +273,6 @@ mod tests {
 
         let creds = repo.find_credentials_by_id(&creds.id).await.unwrap();
         assert_eq!(creds.user_identity, new_identity);
-        // TODO this will fail after hashing password
         assert_eq!(creds.hashed_password, new_password);
 
         // Delete credentials

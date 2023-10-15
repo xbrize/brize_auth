@@ -175,7 +175,7 @@ scripts/tests/<desired_script>.sh
 
 ### Production testing phase
 
-- [] Code refactoring
-- [] Benchmarking
-- [] Penetration testing
-- [] Code Reviews
+- [ ] Code refactoring
+- [ ] Penetration testing
+- [ ] Code Reviews
+- [ ] Benchmarking
