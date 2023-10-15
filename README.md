@@ -176,6 +176,10 @@ scripts/tests/<desired_script>.sh
 ### Production testing phase
 
 - [ ] Code refactoring
+  - [x] Domain module
+  - [x] Application module
+  - [ ] Infrastructure module
+  - [ ] Library
 - [ ] Penetration testing
 - [ ] Code Reviews
 - [ ] Benchmarking
