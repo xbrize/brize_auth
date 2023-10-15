@@ -5,7 +5,6 @@ pub use domain::config::{AuthConfig, DatabaseConfig, Expiry, GatewayType, Sessio
 
 use anyhow::{Context, Result};
 
-// TODO re-hash password when updating password
 use crate::{
     application::{
         command::{
@@ -95,57 +94,53 @@ impl Auth {
         {
             Ok(_) => {
                 return Err(anyhow::anyhow!(
-                    "Registration failed due to credentials already existing"
+                    "Registration failed, credentials already exist"
                 ))
             }
             Err(_) => {
                 let hashed_password = hash_raw_password(raw_password)
-                    .context("Registration failed due to hashing password failure")?;
+                    .context("Registration failed when hashing password")?;
 
                 let credentials = Credentials::new(user_identity, hashed_password.as_str());
 
                 self.credentials_gateway
                     .insert_credentials(&credentials)
                     .await
-                    .context("Registration failed due to repo error")?;
+                    .context("Registration failed, repository error")?;
 
                 return Ok(credentials.id);
             }
         };
     }
 
-    // TODO do not create session if they are not enabled
     pub async fn login(&mut self, user_identity: &str, raw_password: &str) -> Result<SessionId> {
         if self.match_credentials(user_identity, raw_password).await {
             let session_record_id = self
                 .start_session(user_identity)
                 .await
-                .context("Login failed due to session creation failure")?;
+                .context("Login failed, session creation failure")?;
 
             Ok(session_record_id)
         } else {
-            Err(anyhow::anyhow!("Login failed due to invalid credentials"))
+            Err(anyhow::anyhow!("Login failed, invalid credentials"))
         }
     }
 
-    // TODO how to logout a user if session is disabled?
     pub async fn logout(&mut self, session_token: &str) -> Result<()> {
         match self.session_gateway {
             Some(ref mut gateway) => {
                 gateway
                     .delete_session(&session_token.to_string())
                     .await
-                    .context("Logout failed due to session not being deleted")?;
+                    .context("Logout failed, session was not able to be deleted")?;
 
                 Ok(())
             }
-            None => Err(anyhow::anyhow!(
-                "Logout failed due to session not being enabled"
-            )),
+            None => Err(anyhow::anyhow!("Logout failed, sessions not enabled")),
         }
     }
 
-    async fn match_credentials(&self, user_identity: &str, raw_password: &str) -> bool {
+    pub async fn match_credentials(&self, user_identity: &str, raw_password: &str) -> bool {
         match self
             .credentials_gateway
             .find_credentials_by_user_identity(&user_identity)
@@ -162,7 +157,7 @@ impl Auth {
         }
     }
 
-    pub async fn start_session(&mut self, user_identity: &str) -> Result<SessionId> {
+    async fn start_session(&mut self, user_identity: &str) -> Result<SessionId> {
         match &self.session_type {
             SessionType::JWT(duration) => {
                 let claims = Claims::new(user_identity, duration);
@@ -217,7 +212,7 @@ impl Auth {
                 }
                 None => Err(anyhow::anyhow!("Sessions not enabled")),
             },
-            SessionType::None => Err(anyhow::anyhow!("Sessions type set to none")),
+            SessionType::None => Err(anyhow::anyhow!("Sessions not enabled")),
         }
     }
 }
