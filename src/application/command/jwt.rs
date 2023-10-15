@@ -1,8 +1,9 @@
-use crate::domain::entity::Claims;
 use anyhow::{Context, Result};
 use dotenvy::dotenv;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use std::env;
+
+use crate::domain::entity::Claims;
 
 pub fn generate_json_web_token(claims: Claims) -> Result<String> {
     // Load env and get the secret

@@ -1,19 +1,21 @@
 mod application;
 mod domain;
 mod infrastructure;
-
-use application::command::verify_password;
 pub use domain::config::{AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
 
+use anyhow::{Context, Result};
+
+// TODO re-hash password when updating password
 use crate::{
     application::{
-        command::{generate_json_web_token, hash_raw_password, verify_json_web_token},
+        command::{
+            generate_json_web_token, hash_raw_password, verify_json_web_token, verify_password,
+        },
         interface::{CredentialsRepository, SessionRepository},
     },
     domain::entity::{Claims, Credentials, CredentialsId, Session, SessionId},
-    infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
+    infrastructure::gateway::{MySqlGateway, RedisGateway, SurrealGateway},
 };
-use anyhow::{Context, Result};
 
 pub struct Auth {
     credentials_gateway: Box<dyn CredentialsRepository>,
