@@ -1,38 +1,22 @@
-use super::Expiry;
+use crate::domain::config::Expiry;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-pub type SessionRecordId = String;
+pub type SessionId = String;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum SessionState {
-    Valid,
-    Invalid,
-}
-
-#[derive(Clone, Copy)]
-pub enum SessionType {
-    JWT(Expiry),
-    Session(Expiry),
-    None,
-}
-
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize, FromRow)]
 pub struct Session {
-    pub id: SessionRecordId,
+    pub id: SessionId,
     pub created_at: u64,
     pub expires_at: u64,
 }
 
 impl Session {
-    pub fn new(session_duration: Expiry) -> Self {
-        let now = Expiry::now();
-        let duration = session_duration.time();
-
+    pub fn new(duration: &Expiry) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
-            created_at: now,
-            expires_at: duration,
+            created_at: Expiry::now(),
+            expires_at: duration.time(),
         }
     }
 
@@ -47,7 +31,7 @@ mod tests {
 
     #[test]
     fn test_session_entity() {
-        let session = Session::new(Expiry::Second(1));
+        let session = Session::new(&Expiry::Second(1));
         assert!(!session.is_expired());
     }
 }

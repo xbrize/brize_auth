@@ -1,2 +1,8 @@
 /target
 /Cargo.lock
+
+# Ignore .env files
+.env
+.env.*
+*.env
+*.env.*

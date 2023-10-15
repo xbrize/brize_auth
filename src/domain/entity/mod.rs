@@ -4,11 +4,5 @@ pub use credentials::*;
 mod session;
 pub use session::*;
 
-mod claim;
-pub use claim::*;
-
-mod expiry;
-pub use expiry::*;
-
-mod gateway;
-pub use gateway::*;
+mod claims;
+pub use claims::*;

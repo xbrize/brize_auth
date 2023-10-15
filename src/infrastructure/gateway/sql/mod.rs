@@ -1,9 +1,14 @@
-use std::error::Error;
-
 use crate::{
-    application::{CredentialsRepository, SessionRepository},
-    domain::{Credentials, DatabaseConfig, Session, SessionRecordId},
+    application::{
+        command::hash_raw_password,
+        interface::{CredentialsRepository, SessionRepository},
+    },
+    domain::{
+        config::DatabaseConfig,
+        entity::{Credentials, Session, SessionId},
+    },
 };
+use anyhow::{Context, Result};
 use sqlx::mysql::MySqlPool;
 
 pub struct MySqlGateway {
@@ -56,7 +61,7 @@ impl MySqlGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for MySqlGateway {
-    async fn store_session(&mut self, session: &Session) -> Result<(), Box<dyn Error>> {
+    async fn store_session(&mut self, session: &Session) -> Result<()> {
         sqlx::query(
             r#"
             INSERT INTO sessions (id, created_at, expires_at)
@@ -67,15 +72,13 @@ impl SessionRepository for MySqlGateway {
         .bind(session.created_at as i64) // Converting usize to i64 for compatibility
         .bind(session.expires_at as i64)
         .execute(&self.pool)
-        .await?;
+        .await
+        .context("Failed to store session in MySql")?;
 
         Ok(())
     }
 
-    async fn get_session_by_id(
-        &mut self,
-        session_id: &SessionRecordId,
-    ) -> Result<Session, Box<dyn Error>> {
+    async fn get_session_by_id(&mut self, session_id: &SessionId) -> Result<Session> {
         let session: Session = sqlx::query_as(
             r#"
         SELECT id, created_at, expires_at
@@ -85,12 +88,13 @@ impl SessionRepository for MySqlGateway {
         )
         .bind(session_id)
         .fetch_one(&self.pool)
-        .await?;
+        .await
+        .context("Failed to get session by id from MySql")?;
 
         Ok(session)
     }
 
-    async fn delete_session(&mut self, session_id: &SessionRecordId) -> Result<(), Box<dyn Error>> {
+    async fn delete_session(&mut self, session_id: &SessionId) -> Result<()> {
         sqlx::query(
             r#"
         DELETE FROM sessions 
@@ -99,7 +103,8 @@ impl SessionRepository for MySqlGateway {
         )
         .bind(session_id)
         .execute(&self.pool)
-        .await?;
+        .await
+        .context("Failed to delete session from MySql")?;
 
         Ok(())
     }
@@ -107,7 +112,7 @@ impl SessionRepository for MySqlGateway {
 
 #[async_trait::async_trait]
 impl CredentialsRepository for MySqlGateway {
-    async fn insert_credentials(&self, credentials: &Credentials) -> Result<(), Box<dyn Error>> {
+    async fn insert_credentials(&self, credentials: &Credentials) -> Result<()> {
         sqlx::query(
             r#"
             INSERT INTO credentials (id, user_identity, hashed_password)
@@ -118,11 +123,13 @@ impl CredentialsRepository for MySqlGateway {
         .bind(&credentials.user_identity)
         .bind(&credentials.hashed_password)
         .execute(&self.pool)
-        .await?;
+        .await
+        .context("Failed to insert credentials into MySql")?;
 
         Ok(())
     }
-    async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials, Box<dyn Error>> {
+
+    async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials> {
         let creds: Credentials = sqlx::query_as(
             r#"
             SELECT id, user_identity, hashed_password
@@ -132,16 +139,14 @@ impl CredentialsRepository for MySqlGateway {
         )
         .bind(id)
         .fetch_one(&self.pool)
-        .await?;
+        .await
+        .context("Failed to find credentials by id from MySql")?;
 
         Ok(creds)
     }
 
-    async fn find_credentials_by_user_identity(
-        &self,
-        user_identity: &str,
-    ) -> Result<Option<Credentials>, Box<dyn Error>> {
-        let creds_query: Result<Credentials, sqlx::Error> = sqlx::query_as(
+    async fn find_credentials_by_user_identity(&self, user_identity: &str) -> Result<Credentials> {
+        let query: Credentials = sqlx::query_as(
             r#"
             SELECT id, user_identity, hashed_password
             FROM credentials
@@ -150,28 +155,13 @@ impl CredentialsRepository for MySqlGateway {
         )
         .bind(user_identity)
         .fetch_one(&self.pool)
-        .await;
+        .await
+        .context("Failed to find credentials by user identity from MySql")?;
 
-        match creds_query {
-            Ok(creds) => {
-                println!("User Credentials Found");
-                Ok(Some(creds))
-            }
-            Err(e) => match e {
-                sqlx::Error::RowNotFound => {
-                    println!("User Credentials Not Found");
-                    Ok(None)
-                }
-                _ => Err(Box::new(e)),
-            },
-        }
+        Ok(query)
     }
 
-    async fn update_user_identity(
-        &self,
-        current_identity: &str,
-        new_identity: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn update_user_identity(&self, current_identity: &str, new_identity: &str) -> Result<()> {
         sqlx::query(
             r#"
             UPDATE credentials
@@ -182,7 +172,8 @@ impl CredentialsRepository for MySqlGateway {
         .bind(new_identity)
         .bind(current_identity)
         .execute(&self.pool)
-        .await?;
+        .await
+        .context("Failed to update user identity in MySql")?;
 
         Ok(())
     }
@@ -191,8 +182,10 @@ impl CredentialsRepository for MySqlGateway {
         &self,
         user_identity: &str,
         new_raw_password: &str,
-    ) -> Result<(), Box<dyn Error>> {
-        // TODO hash password here
+    ) -> Result<()> {
+        let hashed_password =
+            hash_raw_password(new_raw_password).context("Failed to hash new password")?;
+
         sqlx::query(
             r#"
             UPDATE credentials
@@ -200,18 +193,16 @@ impl CredentialsRepository for MySqlGateway {
             WHERE user_identity = ?
             "#,
         )
-        .bind(new_raw_password)
+        .bind(&hashed_password)
         .bind(user_identity)
         .execute(&self.pool)
-        .await?;
+        .await
+        .context("Failed to update user password in MySql")?;
 
         Ok(())
     }
 
-    async fn delete_credentials_by_user_identity(
-        &self,
-        user_identity: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn delete_credentials_by_user_identity(&self, user_identity: &str) -> Result<()> {
         sqlx::query(
             r#"
             DELETE FROM credentials
@@ -220,7 +211,23 @@ impl CredentialsRepository for MySqlGateway {
         )
         .bind(user_identity)
         .execute(&self.pool)
-        .await?;
+        .await
+        .context("Failed to delete credentials by user identity from MySql")?;
+
+        Ok(())
+    }
+
+    async fn delete_credentials_by_id(&self, id: &str) -> Result<()> {
+        sqlx::query(
+            r#"
+            DELETE FROM credentials
+            WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .context("Failed to delete credentials by id from MySql")?;
 
         Ok(())
     }
@@ -228,9 +235,9 @@ impl CredentialsRepository for MySqlGateway {
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::config::Expiry;
 
     use super::*;
-    use crate::domain::Expiry;
 
     #[tokio::test]
     async fn test_mysql_session_repo() {
@@ -244,7 +251,7 @@ mod tests {
         let mut repo = MySqlGateway::new(&db_config).await;
         repo._create_session_table().await;
 
-        let session = &Session::new(Expiry::Day(1));
+        let session = &Session::new(&Expiry::Day(1));
         let query = repo.store_session(session).await;
         assert!(query.is_ok());
 
@@ -278,7 +285,7 @@ mod tests {
 
         // Test getting credentials
         let creds = repo.find_credentials_by_user_identity(email).await.unwrap();
-        assert_eq!(creds.unwrap().user_identity, email);
+        assert_eq!(creds.user_identity, email);
 
         // Test changing credentials
         let new_identity = "updatedidentity@gmail.com";
@@ -292,11 +299,20 @@ mod tests {
 
         let creds = repo.find_credentials_by_id(&credentials.id).await.unwrap();
         assert_eq!(creds.user_identity, new_identity);
-        // TODO this will fail after hashing password
         assert_eq!(creds.hashed_password, new_password);
 
-        // Delete credentials
+        // Delete credentials by user identity
         repo.delete_credentials_by_user_identity(&creds.user_identity)
+            .await
+            .unwrap();
+        let creds = repo.find_credentials_by_id(&credentials.id).await;
+        assert!(creds.is_err());
+
+        // Delete credentials by id
+        let credentials = Credentials::new(email, password);
+        repo.insert_credentials(&credentials).await.unwrap();
+
+        repo.delete_credentials_by_id(&credentials.id)
             .await
             .unwrap();
         let creds = repo.find_credentials_by_id(&credentials.id).await;

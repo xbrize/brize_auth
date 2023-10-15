@@ -1,5 +1,2 @@
-mod auth;
-pub use auth::*;
-
-mod repository_interface;
-pub use repository_interface::*;
+pub mod command;
+pub mod interface;
