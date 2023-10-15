@@ -93,21 +93,20 @@ impl Auth {
         {
             Ok(_) => {
                 return Err(anyhow::anyhow!(
-                    "Credentials already exist, user not created"
+                    "Registration failed due to credentials already existing"
                 ))
             }
             Err(_) => {
                 let hashed_password = hash_raw_password(raw_password)
-                    .context("Failed to register user due to hashing password failure")?;
+                    .context("Registration failed due to hashing password failure")?;
 
                 let credentials = Credentials::new(user_identity, hashed_password.as_str());
 
                 self.credentials_gateway
                     .insert_credentials(&credentials)
                     .await
-                    .context("Failed to register user due to credential insert failure")?;
+                    .context("Registration failed due to repo error")?;
 
-                println!("New User Created");
                 return Ok(credentials.id);
             }
         };

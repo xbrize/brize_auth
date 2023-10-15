@@ -8,7 +8,7 @@ pub struct Credentials {
     pub id: CredentialsId,
     pub user_identity: String,
 
-    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub hashed_password: String,
 }
 

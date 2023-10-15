@@ -113,11 +113,11 @@ impl CredentialsRepository for SurrealGateway {
                         Ok(take[0].into_credentials())
                     }
                 }
-                Err(e) => Err(anyhow::anyhow!(
+                Err(_) => Err(anyhow::anyhow!(
                     "Failed to take from Surreal response vector"
                 )),
             },
-            Err(e) => Err(anyhow::anyhow!(
+            Err(_) => Err(anyhow::anyhow!(
                 "Failed to find credentials by user identity in Surreal"
             )),
         }
@@ -141,7 +141,8 @@ impl CredentialsRepository for SurrealGateway {
         self.database
             .create::<Vec<SurrealCredentialRecord>>("credentials")
             .content(&credentials)
-            .await?;
+            .await
+            .context("Failed to insert credentials into Surreal")?;
 
         Ok(())
     }
