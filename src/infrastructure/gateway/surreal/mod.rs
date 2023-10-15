@@ -202,12 +202,10 @@ impl CredentialsRepository for SurrealGateway {
     }
 
     async fn delete_credentials_by_id(&self, id: &str) -> Result<()> {
-        let sql = "
-            DELETE FROM credentials
-            WHERE id = $id;
-        ";
-
-        self.database.query(sql).bind(("id", id)).await?;
+        self.database
+            .delete::<Option<SurrealCredentialRecord>>(("credentials", id))
+            .await
+            .context("Failed to delete credentials by id from Surreal")?;
 
         Ok(())
     }
@@ -220,7 +218,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_surreal_session_repository() {
+    async fn test_surreal_session_repo() {
         let db_config = DatabaseConfig {
             db_name: "test".to_string(),
             host: "127.0.0.1:8000".to_string(),
@@ -243,7 +241,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_surreal_creds_repository() {
+    async fn test_surreal_credentials_repo() {
         let password = "test-pass-word";
         let email = "test@email.com";
 
