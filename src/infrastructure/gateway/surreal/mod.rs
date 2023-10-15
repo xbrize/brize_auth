@@ -10,11 +10,10 @@ use crate::application::interface::{CredentialsRepository, SessionRepository};
 use crate::domain::config::DatabaseConfig;
 use crate::domain::entity::{Credentials, Session, SessionId};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SurrealSessionRecord {
-    pub id: Thing,
-    pub created_at: u64,
-    pub expires_at: u64,
+#[derive(Serialize, Deserialize)]
+pub struct SurrealRecord<T> {
+    id: Option<Thing>,
+    data: T,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -55,28 +54,27 @@ impl SurrealGateway {
 #[async_trait::async_trait]
 impl SessionRepository for SurrealGateway {
     async fn get_session_by_id(&mut self, session_id: &SessionId) -> Result<Session> {
-        let session: Option<SurrealSessionRecord> = self
+        let query_for_record: Option<SurrealRecord<Session>> = self
             .database
             .select(("session", session_id))
             .await
             .context("Failed to get session by id from Surreal")?;
 
-        if let Some(record) = session {
-            let session = Session {
-                id: record.id.id.to_raw(),
-                expires_at: record.expires_at,
-                created_at: record.created_at,
-            };
-            return Ok(session);
-        } else {
-            return Err(anyhow::anyhow!("No session record found by id in Surreal"));
+        match query_for_record {
+            Some(record) => Ok(record.data),
+            None => Err(anyhow::anyhow!("No session record found by id in Surreal")),
         }
     }
 
     async fn store_session(&mut self, session: &Session) -> Result<()> {
+        let record = SurrealRecord {
+            id: None,
+            data: session,
+        };
+
         self.database
-            .create::<Vec<SurrealSessionRecord>>("session")
-            .content(&session)
+            .create::<Option<SurrealRecord<Session>>>(("session", &session.id))
+            .content(&record)
             .await
             .context("Failed to store session in Surreal")?;
 
@@ -85,7 +83,7 @@ impl SessionRepository for SurrealGateway {
 
     async fn delete_session(&mut self, session_id: &SessionId) -> Result<()> {
         self.database
-            .delete::<Option<SurrealSessionRecord>>(("session", session_id))
+            .delete::<Option<SurrealRecord<Session>>>(("session", session_id))
             .await
             .context("Failed to delete session from Surreal")?;
 
