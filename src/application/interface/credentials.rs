@@ -14,4 +14,6 @@ pub trait CredentialsRepository {
     async fn update_user_password(&self, user_identity: &str, new_password: &str) -> Result<()>;
 
     async fn delete_credentials_by_user_identity(&self, user_identity: &str) -> Result<()>;
+
+    async fn delete_credentials_by_id(&self, id: &str) -> Result<()>;
 }

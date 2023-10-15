@@ -3,7 +3,6 @@ use crate::domain::config::DatabaseConfig;
 use crate::domain::entity::{Credentials, Session, SessionId};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use sqlx::any;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
@@ -198,6 +197,18 @@ impl CredentialsRepository for SurrealGateway {
 
         Ok(())
     }
+
+    // TODO test
+    async fn delete_credentials_by_id(&self, id: &str) -> Result<()> {
+        let sql = "
+            DELETE FROM credentials
+            WHERE id = $id;
+        ";
+
+        self.database.query(sql).bind(("id", id)).await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -271,6 +282,16 @@ mod tests {
             .await
             .unwrap();
         let creds = repo.find_credentials_by_id(&creds.id).await;
+        assert!(creds.is_err());
+
+        // Delete credentials by id
+        let credentials = Credentials::new(email, password);
+        repo.insert_credentials(&credentials).await.unwrap();
+
+        repo.delete_credentials_by_id(&credentials.id)
+            .await
+            .unwrap();
+        let creds = repo.find_credentials_by_id(&credentials.id).await;
         assert!(creds.is_err());
     }
 }

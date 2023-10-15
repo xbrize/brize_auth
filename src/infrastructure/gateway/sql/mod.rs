@@ -212,7 +212,23 @@ impl CredentialsRepository for MySqlGateway {
         .bind(user_identity)
         .execute(&self.pool)
         .await
-        .context("Failed to delete credentials from MySql")?;
+        .context("Failed to delete credentials by user identity from MySql")?;
+
+        Ok(())
+    }
+
+    // TODO test this
+    async fn delete_credentials_by_id(&self, id: &str) -> Result<()> {
+        sqlx::query(
+            r#"
+            DELETE FROM credentials
+            WHERE id = ?
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .context("Failed to delete credentials by id from MySql")?;
 
         Ok(())
     }
@@ -284,11 +300,20 @@ mod tests {
 
         let creds = repo.find_credentials_by_id(&credentials.id).await.unwrap();
         assert_eq!(creds.user_identity, new_identity);
-        // TODO this will fail after hashing password
         assert_eq!(creds.hashed_password, new_password);
 
-        // Delete credentials
+        // Delete credentials by user identity
         repo.delete_credentials_by_user_identity(&creds.user_identity)
+            .await
+            .unwrap();
+        let creds = repo.find_credentials_by_id(&credentials.id).await;
+        assert!(creds.is_err());
+
+        // Delete credentials by id
+        let credentials = Credentials::new(email, password);
+        repo.insert_credentials(&credentials).await.unwrap();
+
+        repo.delete_credentials_by_id(&credentials.id)
             .await
             .unwrap();
         let creds = repo.find_credentials_by_id(&credentials.id).await;
