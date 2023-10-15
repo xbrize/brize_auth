@@ -2,10 +2,7 @@ use anyhow::{Context, Result};
 use sqlx::mysql::MySqlPool;
 
 use crate::{
-    application::{
-        command::hash_raw_password,
-        interface::{CredentialsRepository, SessionRepository},
-    },
+    application::interface::{CredentialsRepository, SessionRepository},
     domain::{
         config::DatabaseConfig,
         entity::{Credentials, Session, SessionId},
@@ -182,11 +179,8 @@ impl CredentialsRepository for MySqlGateway {
     async fn update_user_password(
         &self,
         user_identity: &str,
-        new_raw_password: &str,
+        new_hashed_password: &str,
     ) -> Result<()> {
-        let hashed_password =
-            hash_raw_password(new_raw_password).context("Failed to hash new password")?;
-
         sqlx::query(
             r#"
             UPDATE credentials
@@ -194,7 +188,7 @@ impl CredentialsRepository for MySqlGateway {
             WHERE user_identity = ?
             "#,
         )
-        .bind(&hashed_password)
+        .bind(&new_hashed_password)
         .bind(user_identity)
         .execute(&self.pool)
         .await

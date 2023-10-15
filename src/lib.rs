@@ -5,6 +5,7 @@ pub use domain::config::{AuthConfig, DatabaseConfig, Expiry, GatewayType, Sessio
 
 use anyhow::{Context, Result};
 
+// TODO re-hash password when updating password
 use crate::{
     application::{
         command::{
@@ -13,7 +14,7 @@ use crate::{
         interface::{CredentialsRepository, SessionRepository},
     },
     domain::entity::{Claims, Credentials, CredentialsId, Session, SessionId},
-    infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
+    infrastructure::gateway::{MySqlGateway, RedisGateway, SurrealGateway},
 };
 
 pub struct Auth {

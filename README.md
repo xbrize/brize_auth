@@ -12,7 +12,7 @@ First install the crate
 cargo add brize_auth
 ```
 
-Next, set up the database tables with this schema
+Next, set up the database tables with this schema, if using a SQL database
 
 ```sql
 -- Credentials table
@@ -173,12 +173,12 @@ scripts/tests/<desired_script>.sh
 - [x] Delete User
   - [x] Remove credentials and session from database
 
-### Production testing phase
+### Alpha testing phase
 
 - [ ] Code refactoring
   - [x] Domain module
   - [x] Application module
-  - [ ] Infrastructure module
+  - [x] Infrastructure module
   - [ ] Library
 - [ ] Penetration testing
 - [ ] Code Reviews

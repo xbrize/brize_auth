@@ -1,2 +1,1 @@
-mod gateway;
-pub use gateway::*;
+pub mod gateway;
