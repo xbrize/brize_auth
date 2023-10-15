@@ -16,23 +16,6 @@ pub struct SurrealRecord<T> {
     data: T,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SurrealCredentialRecord {
-    pub id: Thing,
-    pub user_identity: String,
-    pub hashed_password: String,
-}
-
-impl SurrealCredentialRecord {
-    pub fn into_credentials(&self) -> Credentials {
-        Credentials {
-            id: self.id.id.to_raw(),
-            user_identity: self.user_identity.to_string(),
-            hashed_password: self.hashed_password.to_string(),
-        }
-    }
-}
-
 pub struct SurrealGateway {
     pub database: Surreal<Client>,
 }
@@ -62,7 +45,7 @@ impl SessionRepository for SurrealGateway {
 
         match query_for_record {
             Some(record) => Ok(record.data),
-            None => Err(anyhow::anyhow!("No session record found by id in Surreal")),
+            None => Err(anyhow::anyhow!("Session not found by id in Surreal")),
         }
     }
 
@@ -95,52 +78,50 @@ impl SessionRepository for SurrealGateway {
 impl CredentialsRepository for SurrealGateway {
     async fn find_credentials_by_user_identity(&self, user_identity: &str) -> Result<Credentials> {
         let sql = "
-        SELECT * FROM credentials WHERE user_identity = $user_identity
+        SELECT * FROM credentials WHERE data.user_identity = $user_identity
         ";
 
-        let query_result = self
+        let mut query_result = self
             .database
             .query(sql)
             .bind(("user_identity", user_identity))
-            .await;
+            .await
+            .context("Failed to get credentials by user identity in Surreal")?;
 
-        match query_result {
-            Ok(mut result) => match result.take::<Vec<SurrealCredentialRecord>>(0) {
-                Ok(take) => {
-                    if take.is_empty() {
-                        Err(anyhow::anyhow!("User credentials not found in Surreal"))
-                    } else {
-                        Ok(take[0].into_credentials())
-                    }
-                }
-                Err(_) => Err(anyhow::anyhow!(
-                    "Failed to take from Surreal response vector"
-                )),
-            },
-            Err(_) => Err(anyhow::anyhow!(
+        let mut records = query_result
+            .take::<Vec<SurrealRecord<Credentials>>>(0)
+            .context("Could not take from Surreal response")?;
+
+        if !records.is_empty() {
+            Ok(records.remove(0).data)
+        } else {
+            Err(anyhow::anyhow!(
                 "Failed to find credentials by user identity in Surreal"
-            )),
+            ))
         }
     }
 
     async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials> {
-        let cred_record: Option<SurrealCredentialRecord> =
+        let query_for_record: Option<SurrealRecord<Credentials>> =
             self.database.select(("credentials", id)).await?;
 
-        if let Some(record) = cred_record {
-            let cred = record.into_credentials();
-            return Ok(cred);
-        } else {
-            return Err(anyhow::anyhow!(
-                "Credentials record not found by id in Surreal"
-            ));
+        match query_for_record {
+            Some(record) => Ok(record.data),
+            None => Err(anyhow::anyhow!(
+                "Failed to find credentials by id in Surreal"
+            )),
         }
     }
 
     async fn insert_credentials(&self, credentials: &Credentials) -> Result<()> {
+        let record = SurrealRecord {
+            id: None,
+            data: credentials,
+        };
+
         self.database
-            .create::<Vec<SurrealCredentialRecord>>("credentials")
-            .content(&credentials)
+            .create::<Option<SurrealRecord<Credentials>>>(("credentials", &credentials.id))
+            .content(&record)
             .await
             .context("Failed to insert credentials into Surreal")?;
 
@@ -150,15 +131,16 @@ impl CredentialsRepository for SurrealGateway {
     async fn update_user_identity(&self, current_identity: &str, new_identity: &str) -> Result<()> {
         let sql = "
             UPDATE credentials
-            SET user_identity = $new_identity
-            WHERE user_identity = $current_identity;
+            SET data.user_identity = $new_identity
+            WHERE data.user_identity = $current_identity;
         ";
 
         self.database
             .query(sql)
             .bind(("new_identity", new_identity))
             .bind(("current_identity", current_identity))
-            .await?;
+            .await
+            .context("Failed to update user identity in Surreal")?;
 
         Ok(())
     }
@@ -166,21 +148,20 @@ impl CredentialsRepository for SurrealGateway {
     async fn update_user_password(
         &self,
         user_identity: &str,
-        new_raw_password: &str,
+        new_hashed_password: &str,
     ) -> Result<()> {
-        // TODO hash this
-        let new_hashed_password = new_raw_password;
         let sql = "
             UPDATE credentials
-            SET hashed_password = $new_hashed_password
-            WHERE user_identity = $user_identity;
+            SET data.hashed_password = $new_hashed_password
+            WHERE data.user_identity = $user_identity;
         ";
 
         self.database
             .query(sql)
             .bind(("new_hashed_password", new_hashed_password))
             .bind(("user_identity", user_identity))
-            .await?;
+            .await
+            .context("Failed to update password in Surreal")?;
 
         Ok(())
     }
@@ -188,20 +169,21 @@ impl CredentialsRepository for SurrealGateway {
     async fn delete_credentials_by_user_identity(&self, user_identity: &str) -> Result<()> {
         let sql = "
             DELETE FROM credentials
-            WHERE user_identity = $user_identity;
+            WHERE data.user_identity = $user_identity;
         ";
 
         self.database
             .query(sql)
             .bind(("user_identity", user_identity))
-            .await?;
+            .await
+            .context("Failed to delete credentials by user identity in Surreal")?;
 
         Ok(())
     }
 
     async fn delete_credentials_by_id(&self, id: &str) -> Result<()> {
         self.database
-            .delete::<Option<SurrealCredentialRecord>>(("credentials", id))
+            .delete::<Option<SurrealRecord<Credentials>>>(("credentials", id))
             .await
             .context("Failed to delete credentials by id from Surreal")?;
 
