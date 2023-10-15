@@ -1,8 +1,9 @@
 use crate::application::interface::{CredentialsRepository, SessionRepository};
 use crate::domain::config::DatabaseConfig;
 use crate::domain::entity::{Credentials, Session, SessionId};
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
+use sqlx::any;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::sql::Thing;
 use surrealdb::Surreal;
@@ -51,12 +52,12 @@ impl SurrealGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for SurrealGateway {
-    async fn get_session_by_id(
-        &mut self,
-        session_record_id: &SessionId,
-    ) -> Result<Session, Box<dyn Error>> {
-        let session: Option<SurrealSessionRecord> =
-            self.database.select(("session", session_record_id)).await?;
+    async fn get_session_by_id(&mut self, session_id: &SessionId) -> Result<Session> {
+        let session: Option<SurrealSessionRecord> = self
+            .database
+            .select(("session", session_id))
+            .await
+            .context("Failed to get session by id from Surreal")?;
 
         if let Some(record) = session {
             let session = Session {
@@ -66,28 +67,25 @@ impl SessionRepository for SurrealGateway {
             };
             return Ok(session);
         } else {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "No session record found",
-            )));
+            return Err(anyhow::anyhow!("No session record found by id in Surreal"));
         }
     }
 
-    async fn store_session(&mut self, session: &Session) -> Result<(), Box<dyn Error>> {
+    async fn store_session(&mut self, session: &Session) -> Result<()> {
         self.database
             .create::<Vec<SurrealSessionRecord>>("session")
             .content(&session)
-            .await?;
+            .await
+            .context("Failed to store session in Surreal")?;
+
         Ok(())
     }
 
-    async fn delete_session(
-        &mut self,
-        session_record_id: &SessionId,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn delete_session(&mut self, session_id: &SessionId) -> Result<()> {
         self.database
-            .delete::<Option<SurrealSessionRecord>>(("session", session_record_id))
-            .await?;
+            .delete::<Option<SurrealSessionRecord>>(("session", session_id))
+            .await
+            .context("Failed to delete session from Surreal")?;
 
         Ok(())
     }
@@ -95,10 +93,7 @@ impl SessionRepository for SurrealGateway {
 
 #[async_trait::async_trait]
 impl CredentialsRepository for SurrealGateway {
-    async fn find_credentials_by_user_identity(
-        &self,
-        user_identity: &str,
-    ) -> Result<Option<Credentials>, Box<dyn Error>> {
+    async fn find_credentials_by_user_identity(&self, user_identity: &str) -> Result<Credentials> {
         let sql = "
         SELECT * FROM credentials WHERE user_identity = $user_identity
         ";
@@ -113,20 +108,22 @@ impl CredentialsRepository for SurrealGateway {
             Ok(mut result) => match result.take::<Vec<SurrealCredentialRecord>>(0) {
                 Ok(take) => {
                     if take.is_empty() {
-                        println!("User Credentials Not Found");
-                        Ok(None)
+                        Err(anyhow::anyhow!("User credentials not found in Surreal"))
                     } else {
-                        println!("User Credentials Found");
-                        Ok(Some(take[0].into_credentials()))
+                        Ok(take[0].into_credentials())
                     }
                 }
-                Err(e) => Err(Box::new(e)),
+                Err(e) => Err(anyhow::anyhow!(
+                    "Failed to take from Surreal response vector"
+                )),
             },
-            Err(e) => Err(Box::new(e)),
+            Err(e) => Err(anyhow::anyhow!(
+                "Failed to find credentials by user identity in Surreal"
+            )),
         }
     }
 
-    async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials, Box<dyn Error>> {
+    async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials> {
         let cred_record: Option<SurrealCredentialRecord> =
             self.database.select(("credentials", id)).await?;
 
@@ -134,14 +131,13 @@ impl CredentialsRepository for SurrealGateway {
             let cred = record.into_credentials();
             return Ok(cred);
         } else {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Credentials record not found",
-            )));
+            return Err(anyhow::anyhow!(
+                "Credentials record not found by id in Surreal"
+            ));
         }
     }
 
-    async fn insert_credentials(&self, credentials: &Credentials) -> Result<(), Box<dyn Error>> {
+    async fn insert_credentials(&self, credentials: &Credentials) -> Result<()> {
         self.database
             .create::<Vec<SurrealCredentialRecord>>("credentials")
             .content(&credentials)
@@ -150,11 +146,7 @@ impl CredentialsRepository for SurrealGateway {
         Ok(())
     }
 
-    async fn update_user_identity(
-        &self,
-        current_identity: &str,
-        new_identity: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn update_user_identity(&self, current_identity: &str, new_identity: &str) -> Result<()> {
         let sql = "
             UPDATE credentials
             SET user_identity = $new_identity
@@ -174,7 +166,7 @@ impl CredentialsRepository for SurrealGateway {
         &self,
         user_identity: &str,
         new_raw_password: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<()> {
         // TODO hash this
         let new_hashed_password = new_raw_password;
         let sql = "
@@ -192,10 +184,7 @@ impl CredentialsRepository for SurrealGateway {
         Ok(())
     }
 
-    async fn delete_credentials_by_user_identity(
-        &self,
-        user_identity: &str,
-    ) -> Result<(), Box<dyn Error>> {
+    async fn delete_credentials_by_user_identity(&self, user_identity: &str) -> Result<()> {
         let sql = "
             DELETE FROM credentials
             WHERE user_identity = $user_identity;
@@ -259,7 +248,7 @@ mod tests {
 
         // Test getting creds
         let user_cred = repo.find_credentials_by_user_identity(email).await.unwrap();
-        assert_eq!(user_cred.unwrap().user_identity, email);
+        assert_eq!(user_cred.user_identity, email);
 
         // Test changing credentials
         let new_identity = "updatedidentity@gmail.com";

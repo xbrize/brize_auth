@@ -13,7 +13,7 @@ use crate::{
     domain::entity::{Claims, Credentials, CredentialsId, Session, SessionId},
     infrastructure::{MySqlGateway, RedisGateway, SurrealGateway},
 };
-use std::error::Error;
+use anyhow::{Context, Result};
 
 pub struct Auth {
     credentials_gateway: Box<dyn CredentialsRepository>,
@@ -22,7 +22,7 @@ pub struct Auth {
 }
 
 impl Auth {
-    pub async fn new(auth_config: AuthConfig) -> Result<Self, Box<dyn Error>> {
+    pub async fn new(auth_config: AuthConfig) -> Result<Self> {
         // ** Credentials config
         let credentials_gateway_config = auth_config
             .credentials_gateway
@@ -33,10 +33,9 @@ impl Auth {
             GatewayType::Surreal(config) => Box::new(SurrealGateway::new(&config).await),
             GatewayType::MySql(config) => Box::new(MySqlGateway::new(&config).await),
             GatewayType::Redis(_) => {
-                return Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "Credentials Gateway Config Does Not Support Reddis",
-                )))
+                return Err(anyhow::anyhow!(
+                    "Redis cannot be used for credentials gateway"
+                ))
             }
         };
 
@@ -86,62 +85,62 @@ impl Auth {
         &mut self,
         user_identity: &str,
         raw_password: &str,
-    ) -> Option<CredentialsId> {
+    ) -> Result<CredentialsId> {
         match self
             .credentials_gateway
             .find_credentials_by_user_identity(user_identity)
             .await
         {
-            Ok(credentials_query) => match credentials_query {
-                Some(_) => {
-                    println!("Credentials Already Exist, User Not Created");
-                    return None;
-                }
-                None => {
-                    let hashed_password = hash_raw_password(raw_password).unwrap();
-                    let credentials = Credentials::new(user_identity, hashed_password.as_str());
-                    self.credentials_gateway
-                        .insert_credentials(&credentials)
-                        .await
-                        .unwrap();
+            Ok(_) => {
+                return Err(anyhow::anyhow!(
+                    "Credentials already exist, user not created"
+                ))
+            }
+            Err(_) => {
+                let hashed_password = hash_raw_password(raw_password)
+                    .context("Failed to register user due to hashing password failure")?;
 
-                    println!("New User Created");
-                    return Some(credentials.id);
-                }
-            },
-            Err(e) => {
-                println!("Failed to register user:{}", e);
-                return None;
+                let credentials = Credentials::new(user_identity, hashed_password.as_str());
+
+                self.credentials_gateway
+                    .insert_credentials(&credentials)
+                    .await
+                    .context("Failed to register user due to credential insert failure")?;
+
+                println!("New User Created");
+                return Ok(credentials.id);
             }
         };
     }
 
-    pub async fn login(
-        &mut self,
-        user_identity: &str,
-        raw_password: &str,
-    ) -> Result<SessionId, Box<dyn Error>> {
+    // TODO do not create session if they are not enabled
+    pub async fn login(&mut self, user_identity: &str, raw_password: &str) -> Result<SessionId> {
         if self.match_credentials(user_identity, raw_password).await {
-            let session_record_id = self.start_session(user_identity).await?;
+            let session_record_id = self
+                .start_session(user_identity)
+                .await
+                .context("Login failed due to session creation failure")?;
+
             Ok(session_record_id)
         } else {
-            Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Credentials did not match",
-            )))
+            Err(anyhow::anyhow!("Login failed due to invalid credentials"))
         }
     }
 
-    pub async fn logout(&mut self, session_token: &str) -> Result<(), Box<dyn Error>> {
+    // TODO how to logout a user if session is disabled?
+    pub async fn logout(&mut self, session_token: &str) -> Result<()> {
         match self.session_gateway {
             Some(ref mut gateway) => {
-                gateway.delete_session(&session_token.to_string()).await?;
+                gateway
+                    .delete_session(&session_token.to_string())
+                    .await
+                    .context("Logout failed due to session not being deleted")?;
+
                 Ok(())
             }
-            None => Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::NotConnected,
-                "Session gateway not configured",
-            ))),
+            None => Err(anyhow::anyhow!(
+                "Logout failed due to session not being enabled"
+            )),
         }
     }
 
@@ -151,30 +150,18 @@ impl Auth {
             .find_credentials_by_user_identity(&user_identity)
             .await
         {
-            Ok(credentials_query) => match credentials_query {
-                Some(credentials) => {
-                    if verify_password(raw_password, &credentials.hashed_password).is_ok() {
-                        true
-                    } else {
-                        false
-                    }
-                }
-                None => {
-                    println!("User Credentials Not Found For Login");
+            Ok(credentials) => {
+                if verify_password(raw_password, &credentials.hashed_password).is_ok() {
+                    true
+                } else {
                     false
                 }
-            },
-            Err(e) => {
-                println!("Error Logging In User:{:#?}", e);
-                false
             }
+            Err(_) => false,
         }
     }
 
-    pub async fn start_session(
-        &mut self,
-        user_identity: &str,
-    ) -> Result<SessionId, Box<dyn Error>> {
+    pub async fn start_session(&mut self, user_identity: &str) -> Result<SessionId> {
         match &self.session_type {
             SessionType::JWT(duration) => {
                 let claims = Claims::new(user_identity, duration);
@@ -189,20 +176,14 @@ impl Auth {
                         gateway.store_session(&session).await?;
                         Ok(session.id)
                     }
-                    None => Err(Box::new(std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Session not enabled",
-                    ))),
+                    None => Err(anyhow::anyhow!("Sessions not enabled")),
                 }
             }
-            _ => Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Session not enabled",
-            ))),
+            _ => Err(anyhow::anyhow!("Sessions not enabled")),
         }
     }
 
-    pub async fn validate_session(&mut self, session_token: &str) -> Result<bool, Box<dyn Error>> {
+    pub async fn validate_session(&mut self, session_token: &str) -> Result<bool> {
         match self.session_type {
             SessionType::JWT(_) => {
                 let valid = verify_json_web_token(session_token);
@@ -233,15 +214,9 @@ impl Auth {
                         }
                     }
                 }
-                None => Err(Box::new(std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    "Session not enabled",
-                ))),
+                None => Err(anyhow::anyhow!("Sessions not enabled")),
             },
-            SessionType::None => Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Session type set to none",
-            ))),
+            SessionType::None => Err(anyhow::anyhow!("Sessions type set to none")),
         }
     }
 }

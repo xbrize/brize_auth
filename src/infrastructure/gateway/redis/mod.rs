@@ -1,5 +1,4 @@
-use std::error::Error;
-
+use anyhow::{Context, Result};
 use redis::aio::Connection;
 use redis::AsyncCommands;
 
@@ -14,6 +13,7 @@ pub struct RedisGateway {
 impl RedisGateway {
     pub async fn new(config: &DatabaseConfig) -> Self {
         let addr = format!("redis://:{}@{}/", config.password, config.host);
+        // TODO handle error cases
         let client = redis::Client::open(addr).unwrap();
         let conn = client.get_async_connection().await.unwrap();
 
@@ -23,27 +23,36 @@ impl RedisGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for RedisGateway {
-    async fn store_session(&mut self, session: &Session) -> Result<(), Box<dyn Error>> {
-        let session_json = serde_json::to_string(&session)?;
-        self.conn.set(&session.id, session_json).await?;
+    async fn store_session(&mut self, session: &Session) -> Result<()> {
+        let session_json = serde_json::to_string(&session)
+            .context("Failed to serialize session to string before storing in Redis")?;
+
+        self.conn
+            .set(&session.id, session_json)
+            .await
+            .context("Failed to set session in Redis")?;
         Ok(())
     }
 
-    async fn get_session_by_id(
-        &mut self,
-        session_record_id: &SessionId,
-    ) -> Result<Session, Box<dyn Error>> {
-        let session_string: String = self.conn.get(session_record_id.to_string()).await?;
-        let session: Session = serde_json::from_str(&session_string)?;
+    async fn get_session_by_id(&mut self, session_id: &SessionId) -> Result<Session> {
+        let session_string: String = self
+            .conn
+            .get(session_id.to_string())
+            .await
+            .context("Get session from Redis failed")?;
+
+        let session: Session = serde_json::from_str(&session_string)
+            .context("Could not deserialize session id from Redis")?;
 
         Ok(session)
     }
 
-    async fn delete_session(
-        &mut self,
-        session_record_id: &SessionId,
-    ) -> Result<(), Box<dyn Error>> {
-        self.conn.del(session_record_id).await?;
+    async fn delete_session(&mut self, session_id: &SessionId) -> Result<()> {
+        self.conn
+            .del(session_id)
+            .await
+            .context("Failed to delete session from Redis")?;
+
         Ok(())
     }
 }
