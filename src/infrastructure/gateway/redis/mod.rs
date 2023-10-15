@@ -11,15 +11,15 @@ pub struct RedisGateway {
 }
 
 impl RedisGateway {
-    pub async fn new(config: &DatabaseConfig) -> Result<Self> {
+    pub async fn new(config: &DatabaseConfig) -> Self {
         let addr = format!("redis://:{}@{}/", config.password, config.host);
-        let client = redis::Client::open(addr).context("Failed to connect to Redis client")?;
+        let client = redis::Client::open(addr).expect("Failed to connect to Redis client");
         let conn = client
             .get_async_connection()
             .await
-            .context("Failed to make Redis async")?;
+            .expect("Failed to make Redis async");
 
-        Ok(Self { conn })
+        Self { conn }
     }
 }
 
@@ -27,12 +27,13 @@ impl RedisGateway {
 impl SessionRepository for RedisGateway {
     async fn store_session(&mut self, session: &Session) -> Result<()> {
         let session_json = serde_json::to_string(&session)
-            .context("Failed to serialize session to string before storing in Redis")?;
+            .context("Failed to serialize session id before storing in Redis")?;
 
         self.conn
             .set(&session.id, session_json)
             .await
-            .context("Failed to set session in Redis")?;
+            .context("Failed to store session in Redis")?;
+
         Ok(())
     }
 
@@ -73,7 +74,7 @@ mod test {
             db_name: "".to_string(),
         };
 
-        let mut repo = RedisGateway::new(&config).await.unwrap();
+        let mut repo = RedisGateway::new(&config).await;
 
         let session = Session::new(&Expiry::Day(1));
         let query = repo.store_session(&session).await;

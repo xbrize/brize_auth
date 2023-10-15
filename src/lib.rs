@@ -56,9 +56,7 @@ impl Auth {
                             Box::new(SurrealGateway::new(&config).await)
                         }
                         GatewayType::MySql(config) => Box::new(MySqlGateway::new(&config).await),
-                        GatewayType::Redis(config) => {
-                            Box::new(RedisGateway::new(&config).await.unwrap())
-                        }
+                        GatewayType::Redis(config) => Box::new(RedisGateway::new(&config).await),
                     },
                     None => match &credentials_gateway_config {
                         // Default case, make same as credentials gateway
@@ -66,9 +64,7 @@ impl Auth {
                             Box::new(SurrealGateway::new(&config).await)
                         }
                         GatewayType::MySql(config) => Box::new(MySqlGateway::new(&config).await),
-                        GatewayType::Redis(config) => {
-                            Box::new(RedisGateway::new(&config).await.unwrap())
-                        }
+                        GatewayType::Redis(config) => Box::new(RedisGateway::new(&config).await),
                     },
                 };
 

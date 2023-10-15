@@ -24,7 +24,7 @@ impl MySqlGateway {
         );
         let pool = MySqlPool::connect(addr.as_str())
             .await
-            .expect("Failed to connect to SqlDb");
+            .expect("Failed connection with MySql database");
 
         Self { pool }
     }
@@ -69,7 +69,7 @@ impl SessionRepository for MySqlGateway {
             VALUES (?, ?, ?);
             "#,
         )
-        .bind(&session.id)
+        .bind(session.id.as_str())
         .bind(session.created_at as i64) // Converting usize to i64 for compatibility
         .bind(session.expires_at as i64)
         .execute(&self.pool)
@@ -82,10 +82,10 @@ impl SessionRepository for MySqlGateway {
     async fn get_session_by_id(&mut self, session_id: &SessionId) -> Result<Session> {
         let session: Session = sqlx::query_as(
             r#"
-        SELECT id, created_at, expires_at
-        FROM sessions
-        WHERE id = ?
-        "#,
+            SELECT id, created_at, expires_at
+            FROM sessions
+            WHERE id = ?
+            "#,
         )
         .bind(session_id)
         .fetch_one(&self.pool)
@@ -98,9 +98,9 @@ impl SessionRepository for MySqlGateway {
     async fn delete_session(&mut self, session_id: &SessionId) -> Result<()> {
         sqlx::query(
             r#"
-        DELETE FROM sessions 
-        WHERE id = ?
-        "#,
+            DELETE FROM sessions 
+            WHERE id = ?
+            "#,
         )
         .bind(session_id)
         .execute(&self.pool)
@@ -131,7 +131,7 @@ impl CredentialsRepository for MySqlGateway {
     }
 
     async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials> {
-        let creds: Credentials = sqlx::query_as(
+        let credentials: Credentials = sqlx::query_as(
             r#"
             SELECT id, user_identity, hashed_password
             FROM credentials
@@ -143,11 +143,11 @@ impl CredentialsRepository for MySqlGateway {
         .await
         .context("Failed to find credentials by id from MySql")?;
 
-        Ok(creds)
+        Ok(credentials)
     }
 
     async fn find_credentials_by_user_identity(&self, user_identity: &str) -> Result<Credentials> {
-        let query: Credentials = sqlx::query_as(
+        let credentials: Credentials = sqlx::query_as(
             r#"
             SELECT id, user_identity, hashed_password
             FROM credentials
@@ -159,10 +159,10 @@ impl CredentialsRepository for MySqlGateway {
         .await
         .context("Failed to find credentials by user identity from MySql")?;
 
-        Ok(query)
+        Ok(credentials)
     }
 
-    async fn update_user_identity(&self, current_identity: &str, new_identity: &str) -> Result<()> {
+    async fn update_user_identity(&self, user_identity: &str, new_identity: &str) -> Result<()> {
         sqlx::query(
             r#"
             UPDATE credentials
@@ -171,7 +171,7 @@ impl CredentialsRepository for MySqlGateway {
             "#,
         )
         .bind(new_identity)
-        .bind(current_identity)
+        .bind(user_identity)
         .execute(&self.pool)
         .await
         .context("Failed to update user identity in MySql")?;
@@ -236,9 +236,8 @@ impl CredentialsRepository for MySqlGateway {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::config::Expiry;
-
     use super::*;
+    use crate::domain::config::Expiry;
 
     #[tokio::test]
     async fn test_mysql_session_repo() {

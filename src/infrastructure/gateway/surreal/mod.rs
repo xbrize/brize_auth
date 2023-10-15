@@ -42,11 +42,11 @@ impl SurrealGateway {
     pub async fn new(config: &DatabaseConfig) -> Self {
         let db = Surreal::new::<Ws>(config.host.as_str())
             .await
-            .expect("Could not connect to database:");
+            .expect("Failed connection with Surreal database");
         db.use_ns(config.user_name.as_str())
             .use_db(config.db_name.as_str())
             .await
-            .expect("Could not connect to database:");
+            .expect("Failed connection with Surreal database");
 
         Self { database: db }
     }
