@@ -8,12 +8,12 @@ pub fn hash_raw_password(raw_password: &str) -> Result<String> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
 
-    let password_hashed = argon2
+    let password_hash = argon2
         .hash_password(raw_password.as_bytes(), &salt)
         .context("Failed to hash password")?
         .to_string();
 
-    Ok(password_hashed)
+    Ok(password_hash)
 }
 
 pub fn verify_password(raw_password: &str, hashed_password: &str) -> Result<()> {
