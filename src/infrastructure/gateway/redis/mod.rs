@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use redis::aio::Connection;
 use redis::AsyncCommands;
 
-use crate::application::interface::SessionRepository;
+use crate::application::interface::{GatewayFactory, SessionRepository};
 use crate::domain::config::DatabaseConfig;
 use crate::domain::entity::{Session, SessionId};
 
@@ -10,8 +10,9 @@ pub struct RedisGateway {
     conn: Connection,
 }
 
-impl RedisGateway {
-    pub async fn new(config: &DatabaseConfig) -> Self {
+#[async_trait::async_trait]
+impl GatewayFactory<RedisGateway> for RedisGateway {
+    async fn new(config: &DatabaseConfig) -> Self {
         let addr = format!("redis://:{}@{}/", config.password, config.host);
         let client = redis::Client::open(addr).expect("Failed to connect to Redis client");
         let conn = client

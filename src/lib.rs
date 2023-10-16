@@ -1,6 +1,7 @@
 mod application;
 mod domain;
 mod infrastructure;
+use application::interface::GatewayFactory;
 pub use domain::config::{AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
 
 use anyhow::{Context, Result};
