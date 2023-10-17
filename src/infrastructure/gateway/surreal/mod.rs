@@ -8,7 +8,7 @@ use surrealdb::{
 
 use crate::application::interface::{CredentialsRepository, SessionRepository};
 use crate::domain::config::DatabaseConfig;
-use crate::domain::entity::{Credentials, Session, SessionId};
+use crate::domain::entity::{Credentials, Session, SessionToken};
 
 #[derive(Serialize, Deserialize)]
 pub struct SurrealRecord<T> {
@@ -36,7 +36,7 @@ impl SurrealGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for SurrealGateway {
-    async fn get_session_by_id(&mut self, session_id: &SessionId) -> Result<Session> {
+    async fn get_session_by_id(&mut self, session_id: &SessionToken) -> Result<Session> {
         let query_for_record: Option<SurrealRecord<Session>> = self
             .database
             .select(("session", session_id))
@@ -64,7 +64,7 @@ impl SessionRepository for SurrealGateway {
         Ok(())
     }
 
-    async fn delete_session(&mut self, session_id: &SessionId) -> Result<()> {
+    async fn delete_session(&mut self, session_id: &SessionToken) -> Result<()> {
         self.database
             .delete::<Option<SurrealRecord<Session>>>(("session", session_id))
             .await

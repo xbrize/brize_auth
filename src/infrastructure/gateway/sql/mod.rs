@@ -5,7 +5,7 @@ use crate::{
     application::interface::{CredentialsRepository, SessionRepository},
     domain::{
         config::DatabaseConfig,
-        entity::{Credentials, Session, SessionId},
+        entity::{Credentials, Session, SessionToken},
     },
 };
 
@@ -78,7 +78,7 @@ impl SessionRepository for MySqlGateway {
         Ok(())
     }
 
-    async fn get_session_by_id(&mut self, session_id: &SessionId) -> Result<Session> {
+    async fn get_session_by_id(&mut self, session_id: &SessionToken) -> Result<Session> {
         let session: Session = sqlx::query_as(
             r#"
             SELECT id, created_at, expires_at
@@ -94,7 +94,7 @@ impl SessionRepository for MySqlGateway {
         Ok(session)
     }
 
-    async fn delete_session(&mut self, session_id: &SessionId) -> Result<()> {
+    async fn delete_session(&mut self, session_id: &SessionToken) -> Result<()> {
         sqlx::query(
             r#"
             DELETE FROM sessions 

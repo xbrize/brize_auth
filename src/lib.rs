@@ -12,7 +12,7 @@ use crate::{
         },
         interface::{CredentialsRepository, SessionRepository},
     },
-    domain::entity::{Claims, Credentials, CredentialsId, Session, SessionId},
+    domain::entity::{Claims, Credentials, CredentialsId, Session, SessionToken},
     infrastructure::gateway::{MySqlGateway, RedisGateway, SurrealGateway},
 };
 
@@ -82,6 +82,7 @@ impl Auth {
         }
     }
 
+    /// Register a new user and insert them into the database if user does not already exist
     pub async fn register(
         &mut self,
         user_identity: &str,
@@ -113,8 +114,11 @@ impl Auth {
         };
     }
 
-    pub async fn login(&mut self, user_identity: &str, raw_password: &str) -> Result<SessionId> {
-        if self.match_credentials(user_identity, raw_password).await {
+    /// Verify user credentials and issue a session token.
+    ///
+    /// If sessions are not enabled, use the verify_credentials method instead.
+    pub async fn login(&mut self, user_identity: &str, raw_password: &str) -> Result<SessionToken> {
+        if self.verify_credentials(user_identity, raw_password).await {
             let session_record_id = self
                 .start_session(user_identity)
                 .await
@@ -126,6 +130,9 @@ impl Auth {
         }
     }
 
+    /// End the user's session.
+    ///
+    /// If sessions are not enabled, this will throw and error.
     pub async fn logout(&mut self, session_token: &str) -> Result<()> {
         match self.session_gateway {
             Some(ref mut gateway) => {
@@ -140,7 +147,8 @@ impl Auth {
         }
     }
 
-    pub async fn match_credentials(&self, user_identity: &str, raw_password: &str) -> bool {
+    /// Matches credentials provided by the user with the what is in the database
+    pub async fn verify_credentials(&self, user_identity: &str, raw_password: &str) -> bool {
         match self
             .credentials_gateway
             .find_credentials_by_user_identity(&user_identity)
@@ -157,7 +165,8 @@ impl Auth {
         }
     }
 
-    async fn start_session(&mut self, user_identity: &str) -> Result<SessionId> {
+    /// Issues a new session token to start the user session
+    async fn start_session(&mut self, user_identity: &str) -> Result<SessionToken> {
         match &self.session_type {
             SessionType::JWT(duration) => {
                 let claims = Claims::new(user_identity, duration);
@@ -179,6 +188,7 @@ impl Auth {
         }
     }
 
+    /// Validates the session token
     pub async fn validate_session(&mut self, session_token: &str) -> Result<bool> {
         match self.session_type {
             SessionType::JWT(_) => {
