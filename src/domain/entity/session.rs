@@ -3,11 +3,11 @@ use sqlx::FromRow;
 
 use crate::domain::config::Expiry;
 
-pub type SessionId = String;
+pub type SessionToken = String;
 
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct Session {
-    pub id: SessionId,
+    pub id: SessionToken,
     pub created_at: u64,
     pub expires_at: u64,
 }

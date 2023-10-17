@@ -4,7 +4,7 @@ use redis::AsyncCommands;
 
 use crate::application::interface::SessionRepository;
 use crate::domain::config::DatabaseConfig;
-use crate::domain::entity::{Session, SessionId};
+use crate::domain::entity::{Session, SessionToken};
 
 pub struct RedisGateway {
     conn: Connection,
@@ -37,7 +37,7 @@ impl SessionRepository for RedisGateway {
         Ok(())
     }
 
-    async fn get_session_by_id(&mut self, session_id: &SessionId) -> Result<Session> {
+    async fn get_session_by_id(&mut self, session_id: &SessionToken) -> Result<Session> {
         let session_string: String = self
             .conn
             .get(session_id.to_string())
@@ -50,7 +50,7 @@ impl SessionRepository for RedisGateway {
         Ok(session)
     }
 
-    async fn delete_session(&mut self, session_id: &SessionId) -> Result<()> {
+    async fn delete_session(&mut self, session_id: &SessionToken) -> Result<()> {
         self.conn
             .del(session_id)
             .await
