@@ -6,7 +6,7 @@ use surrealdb::{
     Surreal,
 };
 
-use crate::application::interface::{CredentialsRepository, GatewayFactory, SessionRepository};
+use crate::application::interface::{CredentialsRepository, SessionRepository};
 use crate::domain::config::DatabaseConfig;
 use crate::domain::entity::{Credentials, Session, SessionId};
 
@@ -20,9 +20,8 @@ pub struct SurrealGateway {
     pub database: Surreal<Client>,
 }
 
-#[async_trait::async_trait]
-impl GatewayFactory<SurrealGateway> for SurrealGateway {
-    async fn new(config: &DatabaseConfig) -> Self {
+impl SurrealGateway {
+    pub async fn new(config: &DatabaseConfig) -> Self {
         let db = Surreal::new::<Ws>(config.host.as_str())
             .await
             .expect("Failed connection with Surreal database");

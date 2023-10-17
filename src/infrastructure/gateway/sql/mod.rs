@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use sqlx::mysql::MySqlPool;
 
 use crate::{
-    application::interface::{CredentialsRepository, GatewayFactory, SessionRepository},
+    application::interface::{CredentialsRepository, SessionRepository},
     domain::{
         config::DatabaseConfig,
         entity::{Credentials, Session, SessionId},
@@ -14,6 +14,18 @@ pub struct MySqlGateway {
 }
 
 impl MySqlGateway {
+    pub async fn new(config: &DatabaseConfig) -> Self {
+        let addr = format!(
+            "mysql://{}:{}@{}/{}",
+            config.user_name, config.password, config.host, config.db_name
+        );
+        let pool = MySqlPool::connect(addr.as_str())
+            .await
+            .expect("Failed connection with MySql database");
+
+        Self { pool }
+    }
+
     pub async fn _create_session_table(&self) {
         sqlx::query(
             r#"
@@ -45,20 +57,7 @@ impl MySqlGateway {
     }
 }
 
-#[async_trait::async_trait]
-impl GatewayFactory<MySqlGateway> for MySqlGateway {
-    async fn new(config: &DatabaseConfig) -> Self {
-        let addr = format!(
-            "mysql://{}:{}@{}/{}",
-            config.user_name, config.password, config.host, config.db_name
-        );
-        let pool = MySqlPool::connect(addr.as_str())
-            .await
-            .expect("Failed connection with MySql database");
-
-        Self { pool }
-    }
-}
+impl MySqlGateway {}
 
 #[async_trait::async_trait]
 impl SessionRepository for MySqlGateway {
