@@ -73,6 +73,8 @@ fn main {
 }
 ```
 
+See the **src/examples directory** for more information.
+
 ## Config
 
 The preferred database and session type can be configured to your use case.
@@ -181,6 +183,7 @@ scripts/tests/<desired_script>.sh
   - [x] Infrastructure module
   - [x] Library
 - [ ] Live testing
+  - [ ] Secure production db testing
   - [ ] Penetration testing
   - [ ] Benchmarking
 - [ ] Code Reviews
