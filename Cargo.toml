@@ -1,9 +1,9 @@
 [package]
 name = "brize_auth"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2021"
 authors=["Jonathan Karrer <karrerjon@gmail.com>"]
-description = "A minimalistic and async authentication library."
+description = "A tiny async authentication library."
 license = "MIT/Apache-2.0"
 repository = "https://github.com/xbrize/brize_auth"
 readme = "README.md"

@@ -1,6 +1,6 @@
 # Brize Auth
 
-A minimalistic and async authentication library.
+A tiny async authentication library.
 
 Still a Work In Progress. Is now in a usable state, but not for production. Roadmap at bottom.
 
@@ -175,11 +175,12 @@ scripts/tests/<desired_script>.sh
 
 ### Alpha testing phase
 
-- [ ] Code refactoring
+- [x] Code refactoring
   - [x] Domain module
   - [x] Application module
   - [x] Infrastructure module
-  - [ ] Library
-- [ ] Penetration testing
+  - [x] Library
+- [ ] Live testing
+  - [ ] Penetration testing
+  - [ ] Benchmarking
 - [ ] Code Reviews
-- [ ] Benchmarking
