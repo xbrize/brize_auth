@@ -1,5 +1,6 @@
 mod application;
 mod domain;
+pub mod examples;
 mod infrastructure;
 pub use domain::config::{AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
 

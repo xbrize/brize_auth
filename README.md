@@ -60,7 +60,7 @@ fn main {
 
     // Create a new set of credentials..
     // .. returns the id of the credentials row, use this as some kind of reference key on YOUR user table
-    let user_key: Option<String> = auth.register(user_identity, raw_password).await;
+    let credentials_id: Option<String> = auth.register(user_identity, raw_password).await;
 
     // Log user in and get a session token back
     let session_token: Result<String> = auth.login(user_identity, raw_password).await;
