@@ -4,9 +4,15 @@ A tiny async authentication library.
 
 ## Summary
 
-A tool for simplifying authentication for RESTful ecosystems. Purposefully built to be agnostic of your specific business/schema logic for managing users. Primarily controls the user **credentials** and optionally managing **sessions**.
+A tool for simplifying authentication for RESTful ecosystems. Purposefully built to be agnostic of your specific business/schema logic for managing users. Primarily controls the user **credentials** and optionally managing **sessions**. Built to run asynchronously using the Tokio runtime, and supports MySql, SurrealDB, and Redis.
 
 ## Credentials
+
+Brize auth **credentials** has 3 fields, an **id** for linking to your specific business/schema logic, the **user_identity** which should be a unique way to identify a user such as an email, and a **hashed_password**.
+
+## Sessions
+
+The sessions are optional, in case you want to use some other session solution. If you do enable **sessions**, Brize auth offers classic table sessions, which have an **id** field as the token, **created_at** and **expired_at** for managing the expiration. Brize auth also offers **JWT** session management.
 
 ## Setup
 
