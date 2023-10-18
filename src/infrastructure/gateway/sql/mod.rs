@@ -29,7 +29,7 @@ impl MySqlGateway {
     pub async fn _create_session_table(&self) {
         sqlx::query(
             r#"
-            CREATE TABLE sessions (
+            CREATE TABLE user_sessions (
                 id CHAR(36) PRIMARY KEY,  
                 created_at BIGINT UNSIGNED NOT NULL,
                 expires_at BIGINT UNSIGNED NOT NULL
@@ -44,7 +44,7 @@ impl MySqlGateway {
     pub async fn _create_credentials_table(&self) {
         sqlx::query(
             r#"
-            CREATE TABLE credentials (
+            CREATE TABLE user_credentials (
                 id CHAR(36) PRIMARY KEY,
                 user_identity VARCHAR(255) NOT NULL,
                 hashed_password VARCHAR(255) NOT NULL
@@ -64,7 +64,7 @@ impl SessionRepository for MySqlGateway {
     async fn store_session(&mut self, session: &Session) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO sessions (id, created_at, expires_at)
+            INSERT INTO user_sessions (id, created_at, expires_at)
             VALUES (?, ?, ?);
             "#,
         )
@@ -82,7 +82,7 @@ impl SessionRepository for MySqlGateway {
         let session: Session = sqlx::query_as(
             r#"
             SELECT id, created_at, expires_at
-            FROM sessions
+            FROM user_sessions
             WHERE id = ?
             "#,
         )
@@ -97,7 +97,7 @@ impl SessionRepository for MySqlGateway {
     async fn delete_session(&mut self, session_id: &SessionToken) -> Result<()> {
         sqlx::query(
             r#"
-            DELETE FROM sessions 
+            DELETE FROM user_sessions 
             WHERE id = ?
             "#,
         )
@@ -115,7 +115,7 @@ impl CredentialsRepository for MySqlGateway {
     async fn insert_credentials(&self, credentials: &Credentials) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO credentials (id, user_identity, hashed_password)
+            INSERT INTO user_credentials (id, user_identity, hashed_password)
             VALUES (?, ?, ?);
             "#,
         )
@@ -133,7 +133,7 @@ impl CredentialsRepository for MySqlGateway {
         let credentials: Credentials = sqlx::query_as(
             r#"
             SELECT id, user_identity, hashed_password
-            FROM credentials
+            FROM user_credentials
             WHERE id = ?
             "#,
         )
@@ -149,7 +149,7 @@ impl CredentialsRepository for MySqlGateway {
         let credentials: Credentials = sqlx::query_as(
             r#"
             SELECT id, user_identity, hashed_password
-            FROM credentials
+            FROM user_credentials
             WHERE user_identity = ?
             "#,
         )
@@ -164,7 +164,7 @@ impl CredentialsRepository for MySqlGateway {
     async fn update_user_identity(&self, user_identity: &str, new_identity: &str) -> Result<()> {
         sqlx::query(
             r#"
-            UPDATE credentials
+            UPDATE user_credentials
             SET user_identity = ?
             WHERE user_identity = ?
             "#,
@@ -185,7 +185,7 @@ impl CredentialsRepository for MySqlGateway {
     ) -> Result<()> {
         sqlx::query(
             r#"
-            UPDATE credentials
+            UPDATE user_credentials
             SET hashed_password = ?
             WHERE user_identity = ?
             "#,
@@ -202,7 +202,7 @@ impl CredentialsRepository for MySqlGateway {
     async fn delete_credentials_by_user_identity(&self, user_identity: &str) -> Result<()> {
         sqlx::query(
             r#"
-            DELETE FROM credentials
+            DELETE FROM user_credentials
             WHERE user_identity = ?
             "#,
         )
@@ -217,7 +217,7 @@ impl CredentialsRepository for MySqlGateway {
     async fn delete_credentials_by_id(&self, id: &str) -> Result<()> {
         sqlx::query(
             r#"
-            DELETE FROM credentials
+            DELETE FROM user_credentials
             WHERE id = ?
             "#,
         )

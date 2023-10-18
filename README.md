@@ -4,15 +4,15 @@ A tiny async authentication library.
 
 ## Summary
 
-A tool for simplifying authentication for RESTful ecosystems. Purposefully built to be agnostic of your specific business/schema logic for managing users. Primarily controls the user **credentials** and optionally managing **sessions**. Built to run asynchronously using the Tokio runtime, and supports MySql, SurrealDB, and Redis.
+A tool for simplifying authentication for RESTful ecosystems. Purposefully built to be agnostic of your specific business/schema logic for managing users. Primarily controls the user **credentials** and optionally managing **sessions**. Built asynchronously with the Tokio runtime, and supports MySql, SurrealDB, and Redis.
 
 ## Credentials
 
-Brize auth **credentials** has 3 fields, an **id** for linking to your specific business/schema logic, the **user_identity** which should be a unique way to identify a user such as an email, and a **hashed_password**.
+Brize auth **credentials** has 3 fields, an **id** for linking to your specific business/schema logic, the **user_identity** which should be a unique way to identify a user such as an email, and a **hashed_password**. This will be stored in a **user_credentials** table on your database.
 
 ## Sessions
 
-The sessions are optional, in case you want to use some other session solution. If you do enable **sessions**, Brize auth offers classic table sessions, which have an **id** field as the token, **created_at** and **expired_at** for managing the expiration. Brize auth also offers **JWT** session management.
+The sessions are optional, in case you want to use some other session solution. If you do enable **sessions**, Brize auth offers classic table sessions, which have an **id** field as the token, **created_at** and **expired_at** for managing the expiration. The sessions will be stored in a **user_sessions** table on your database. Brize auth also offers **JWT** session management.
 
 ## Setup
 
@@ -26,14 +26,14 @@ Next, set up the database tables with this schema, if using a SQL database
 
 ```sql
 -- Credentials table
-CREATE TABLE credentials (
+CREATE TABLE user_credentials (
     id CHAR(36) PRIMARY KEY,
     user_identity VARCHAR(255) NOT NULL,
     hashed_password VARCHAR(255) NOT NULL
 );
 
 -- Sessions table
-CREATE TABLE sessions (
+CREATE TABLE user_sessions (
     id CHAR(36) PRIMARY KEY,
     created_at BIGINT UNSIGNED NOT NULL,
     expires_at BIGINT UNSIGNED NOT NULL
@@ -93,30 +93,31 @@ The preferred database and session type can be configured to your use case.
 use brize_auth::{Auth, AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
 
 pub struct DatabaseConfig {
-    pub db_name: String,
-    pub password: String,
-    pub user_name: String,
-    pub host: String,
+    pub db_name: String, // Name of database
+    pub password: String, // Password for user
+    pub user_name: String, // Name of user
+    pub host: String, // Host IP
+    pub namespace: Option<String> // Optional namespace in db
 }
 
 enum GatewayType {
-    MySql(DatabaseConfig),
-    Surreal(DatabaseConfig),
-    Redis(DatabaseConfig),
+    MySql(DatabaseConfig), // MySql databases
+    Surreal(DatabaseConfig), // SurrealDB
+    Redis(DatabaseConfig), // Redis instances
 }
 
 enum SessionType {
-    JWT(Expiry),
-    Session(Expiry),
-    None,
+    JWT(Expiry), // JWT session management
+    Session(Expiry), // Classic table sessions management
+    None, // Disable sessions
 }
 
 enum Expiry {
-    Second(u64),
-    Day(u64),
-    Week(u64),
-    Month(u64),
-    Year(u64),
+    Second(u64), // Epoch seconds
+    Day(u64), // Days in EPOCH
+    Week(u64), // Weeks in EPOCH
+    Month(u64), // Months in EPOCH
+    Year(u64), // Years in EPOCH
 }
 
 let config = AuthConfig::new()
@@ -196,6 +197,12 @@ scripts/tests/<desired_script>.sh
   - [x] Library
 - [ ] Live testing
   - [x] Secure production db testing
-  - [ ] Penetration testing
   - [ ] Benchmarking
-- [ ] Code Reviews
+- [ ] Code Review
+
+### Beta features
+
+- [ ] Configure custom table names for credentials and sessions
+- [ ] Configure custom claims for JWT
+- [ ] Add refresh config for Session and JWT
+- [ ] Add OAuth

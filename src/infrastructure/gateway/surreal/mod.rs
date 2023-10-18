@@ -53,7 +53,7 @@ impl SessionRepository for SurrealGateway {
     async fn get_session_by_id(&mut self, session_id: &SessionToken) -> Result<Session> {
         let query_for_record: Option<SurrealRecord<Session>> = self
             .database
-            .select(("session", session_id))
+            .select(("user_sessions", session_id))
             .await
             .context("Failed to get session by id from Surreal")?;
 
@@ -70,7 +70,7 @@ impl SessionRepository for SurrealGateway {
         };
 
         self.database
-            .create::<Option<SurrealRecord<Session>>>(("session", &session.id))
+            .create::<Option<SurrealRecord<Session>>>(("user_sessions", &session.id))
             .content(&record)
             .await
             .context("Failed to store session in Surreal")?;
@@ -80,7 +80,7 @@ impl SessionRepository for SurrealGateway {
 
     async fn delete_session(&mut self, session_id: &SessionToken) -> Result<()> {
         self.database
-            .delete::<Option<SurrealRecord<Session>>>(("session", session_id))
+            .delete::<Option<SurrealRecord<Session>>>(("user_sessions", session_id))
             .await
             .context("Failed to delete session from Surreal")?;
 
@@ -92,7 +92,7 @@ impl SessionRepository for SurrealGateway {
 impl CredentialsRepository for SurrealGateway {
     async fn find_credentials_by_user_identity(&self, user_identity: &str) -> Result<Credentials> {
         let sql = "
-        SELECT * FROM credentials WHERE data.user_identity = $user_identity
+        SELECT * FROM user_credentials WHERE data.user_identity = $user_identity
         ";
 
         let mut query_result = self
@@ -117,7 +117,7 @@ impl CredentialsRepository for SurrealGateway {
 
     async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials> {
         let query_for_record: Option<SurrealRecord<Credentials>> =
-            self.database.select(("credentials", id)).await?;
+            self.database.select(("user_credentials", id)).await?;
 
         match query_for_record {
             Some(record) => Ok(record.data),
@@ -134,7 +134,7 @@ impl CredentialsRepository for SurrealGateway {
         };
 
         self.database
-            .create::<Option<SurrealRecord<Credentials>>>(("credentials", &credentials.id))
+            .create::<Option<SurrealRecord<Credentials>>>(("user_credentials", &credentials.id))
             .content(&record)
             .await
             .context("Failed to insert credentials into Surreal")?;
@@ -144,7 +144,7 @@ impl CredentialsRepository for SurrealGateway {
 
     async fn update_user_identity(&self, current_identity: &str, new_identity: &str) -> Result<()> {
         let sql = "
-            UPDATE credentials
+            UPDATE user_credentials
             SET data.user_identity = $new_identity
             WHERE data.user_identity = $current_identity;
         ";
@@ -165,7 +165,7 @@ impl CredentialsRepository for SurrealGateway {
         new_hashed_password: &str,
     ) -> Result<()> {
         let sql = "
-            UPDATE credentials
+            UPDATE user_credentials
             SET data.hashed_password = $new_hashed_password
             WHERE data.user_identity = $user_identity;
         ";
@@ -182,7 +182,7 @@ impl CredentialsRepository for SurrealGateway {
 
     async fn delete_credentials_by_user_identity(&self, user_identity: &str) -> Result<()> {
         let sql = "
-            DELETE FROM credentials
+            DELETE FROM user_credentials
             WHERE data.user_identity = $user_identity;
         ";
 
@@ -197,7 +197,7 @@ impl CredentialsRepository for SurrealGateway {
 
     async fn delete_credentials_by_id(&self, id: &str) -> Result<()> {
         self.database
-            .delete::<Option<SurrealRecord<Credentials>>>(("credentials", id))
+            .delete::<Option<SurrealRecord<Credentials>>>(("user_credentials", id))
             .await
             .context("Failed to delete credentials by id from Surreal")?;
 
