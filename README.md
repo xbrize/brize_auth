@@ -2,7 +2,11 @@
 
 A tiny async authentication library.
 
-Still a Work In Progress. Is now in a usable state, but not for production. Roadmap at bottom.
+## Summary
+
+A tool for simplifying authentication for RESTful ecosystems. Purposefully built to be agnostic of your specific business/schema logic for managing users. Primarily controls the user **credentials** and optionally managing **sessions**.
+
+## Credentials
 
 ## Setup
 
@@ -28,7 +32,6 @@ CREATE TABLE sessions (
     created_at BIGINT UNSIGNED NOT NULL,
     expires_at BIGINT UNSIGNED NOT NULL
 );
-
 ```
 
 ## Usage
@@ -44,6 +47,7 @@ fn main {
         db_name: "mysql".to_string(),
         user_name: "root".to_string(),
         password: "my-secret-pw".to_string(),
+        namespace: None
     };
 
     // Start your auth config
@@ -112,8 +116,10 @@ enum Expiry {
 let config = AuthConfig::new()
     // Set your preferred database tech for the credentials table
     .set_credentials_gateway(GatewayType::MySql(DatabaseConfig))
-    // Set your session type, TableSession, JWT, or None to disable and the duration
+
+    // Set your session type, Session, JWT, or None to disable and the duration
     .set_session_type(SessionType::Session(Expiry::Month(1)));
+
     // Override the default session GatewayType from above
     .set_session_gateway(GatewayType::Redis(DatabaseConfig))
 
@@ -183,7 +189,7 @@ scripts/tests/<desired_script>.sh
   - [x] Infrastructure module
   - [x] Library
 - [ ] Live testing
-  - [ ] Secure production db testing
+  - [x] Secure production db testing
   - [ ] Penetration testing
   - [ ] Benchmarking
 - [ ] Code Reviews
