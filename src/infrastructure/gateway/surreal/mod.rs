@@ -216,9 +216,9 @@ mod tests {
         let db_config = DatabaseConfig {
             db_name: "test".to_string(),
             host: "127.0.0.1:8000".to_string(),
-            user_name: "test".to_string(),
-            password: "".to_string(),
-            namespace: None,
+            user_name: "root".to_string(),
+            password: "surreal_ps".to_string(),
+            namespace: Some("test".to_string()),
         };
         let mut repo = SurrealGateway::new(&db_config).await;
 
@@ -244,9 +244,9 @@ mod tests {
         let db_config = DatabaseConfig {
             db_name: "test".to_string(),
             host: "127.0.0.1:8000".to_string(),
-            user_name: "test".to_string(),
-            password: "".to_string(),
-            namespace: None,
+            user_name: "root".to_string(),
+            password: "surreal_ps".to_string(),
+            namespace: Some("test".to_string()),
         };
         let repo = SurrealGateway::new(&db_config).await;
 
