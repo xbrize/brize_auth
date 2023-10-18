@@ -9,22 +9,22 @@ fn get_env(secret_name: &str) -> String {
     env::var(secret_name).context(err).unwrap()
 }
 
-pub async fn planet_scale_example() -> Result<()> {
+pub async fn surreal_db_example() -> Result<()> {
     dotenv().context(".env file not found")?;
 
     // ** Set database params
     let db_config = DatabaseConfig {
-        host: get_env("PSCALE_DB_HOST"),
-        user_name: get_env("PSCALE_DB_USERNAME"),
-        password: get_env("PSCALE_DB_PASSWORD"),
-        db_name: get_env("PSCALE_DB_NAME"),
-        namespace: None,
+        host: get_env("SURREAL_DB_HOST"),
+        user_name: get_env("SURREAL_DB_USERNAME"),
+        password: get_env("SURREAL_DB_PASSWORD"),
+        db_name: get_env("SURREAL_DB_NAME"),
+        namespace: Some(get_env("SURREAL_DB_NAMESPACE")),
     };
 
     // ** Start Auth config
     let config = AuthConfig::new()
-        .set_credentials_gateway(GatewayType::MySql(db_config))
-        .set_session_type(SessionType::Session(Expiry::Month(1)));
+        .set_credentials_gateway(GatewayType::Surreal(db_config))
+        .set_session_type(SessionType::Session(Expiry::Day(2)));
 
     // ** Init Auth
     let mut auth = Auth::new(config).await?;

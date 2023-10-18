@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use surrealdb::{
     engine::remote::ws::{Client, Ws},
+    opt::auth::Root,
     sql::Thing,
     Surreal,
 };
@@ -24,11 +25,24 @@ impl SurrealGateway {
     pub async fn new(config: &DatabaseConfig) -> Self {
         let db = Surreal::new::<Ws>(config.host.as_str())
             .await
-            .expect("Failed connection with Surreal database");
-        db.use_ns(config.user_name.as_str())
+            .expect("Failed connection with SurrealDB");
+
+        db.signin(Root {
+            username: config.user_name.as_str(),
+            password: config.password.as_str(),
+        })
+        .await
+        .expect("Failed to sign into SurrealDB");
+
+        let namespace = match &config.namespace {
+            Some(namespace) => namespace.as_str(),
+            None => "",
+        };
+
+        db.use_ns(namespace)
             .use_db(config.db_name.as_str())
             .await
-            .expect("Failed connection with Surreal database");
+            .expect("Failed connection with SurrealDB");
 
         Self { database: db }
     }
@@ -204,6 +218,7 @@ mod tests {
             host: "127.0.0.1:8000".to_string(),
             user_name: "test".to_string(),
             password: "".to_string(),
+            namespace: None,
         };
         let mut repo = SurrealGateway::new(&db_config).await;
 
@@ -231,6 +246,7 @@ mod tests {
             host: "127.0.0.1:8000".to_string(),
             user_name: "test".to_string(),
             password: "".to_string(),
+            namespace: None,
         };
         let repo = SurrealGateway::new(&db_config).await;
 

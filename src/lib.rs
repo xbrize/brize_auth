@@ -241,6 +241,7 @@ mod tests {
             db_name: "mysql".to_string(),
             user_name: "root".to_string(),
             password: "my-secret-pw".to_string(),
+            namespace: None,
         };
 
         let repo = MySqlGateway::new(&db_config).await;
@@ -274,6 +275,7 @@ mod tests {
             host: "127.0.0.1:8000".to_string(),
             user_name: "test".to_string(),
             password: "".to_string(),
+            namespace: None,
         };
 
         let config = AuthConfig::new()

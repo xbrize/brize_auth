@@ -14,6 +14,7 @@ pub struct DatabaseConfig {
     pub password: String,
     pub user_name: String,
     pub host: String,
+    pub namespace: Option<String>,
 }
 
 /// Brize auth considers a gateway to be some sort of database technology.

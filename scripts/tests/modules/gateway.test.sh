@@ -7,3 +7,4 @@ cargo test gateway;
 docker kill surreal_db;
 docker kill redis_db;
 docker kill sql_db;
+

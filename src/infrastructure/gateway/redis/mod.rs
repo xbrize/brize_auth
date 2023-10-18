@@ -72,6 +72,7 @@ mod test {
             password: "mypassword".to_string(),
             user_name: "".to_string(),
             db_name: "".to_string(),
+            namespace: None,
         };
 
         let mut repo = RedisGateway::new(&config).await;

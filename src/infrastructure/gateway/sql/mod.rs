@@ -242,6 +242,7 @@ mod tests {
             password: "my-secret-pw".to_string(),
             db_name: "mysql".to_string(),
             user_name: "root".to_string(),
+            namespace: None,
         };
 
         let mut repo = MySqlGateway::new(&db_config).await;
@@ -267,6 +268,7 @@ mod tests {
             password: "my-secret-pw".to_string(),
             db_name: "mysql".to_string(),
             user_name: "root".to_string(),
+            namespace: None,
         };
 
         let repo = MySqlGateway::new(&db_config).await;
