@@ -18,21 +18,21 @@ pub fn generate_json_web_token(claims: Claims) -> Result<String> {
     Ok(token)
 }
 
-pub fn verify_json_web_token(token: &str) -> Result<()> {
+pub fn verify_json_web_token(token: &str) -> Result<String> {
     // Load env and get the secret
     dotenv().context(".env file not found")?;
     let secret = env::var("JWT_SECRET").context("JWT_SECRET key not found")?;
 
     // Decode token
     let validation = Validation::new(Algorithm::HS256);
-    decode::<Claims>(
+    let claims = decode::<Claims>(
         token,
         &DecodingKey::from_secret(secret.as_ref()),
         &validation,
     )
     .context("Token decoding failed")?;
 
-    Ok(())
+    Ok(claims.claims.sub)
 }
 
 #[cfg(test)]

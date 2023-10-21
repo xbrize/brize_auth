@@ -41,9 +41,9 @@ pub async fn planet_scale_example() -> Result<()> {
     let session_token: String = auth.login(user_identity, raw_password).await?;
     dbg!(&session_token);
 
-    // ** Validate token upon request
-    let validation: bool = auth.validate_session(session_token.as_str()).await?;
-    dbg!(validation);
+    // ** Validate token upon request and get user identity
+    let validated_user: String = auth.validate_session(session_token.as_str()).await?;
+    dbg!(validated_user);
 
     // ** Logout
     let logout_status: Result<()> = auth.logout(&session_token).await;

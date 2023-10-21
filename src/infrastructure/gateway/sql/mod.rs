@@ -32,7 +32,8 @@ impl MySqlGateway {
             CREATE TABLE user_sessions (
                 id CHAR(36) PRIMARY KEY,  
                 created_at BIGINT UNSIGNED NOT NULL,
-                expires_at BIGINT UNSIGNED NOT NULL
+                expires_at BIGINT UNSIGNED NOT NULL,
+                user_identity VARCHAR(255) NOT NULL
             );
             "#,
         )
@@ -61,16 +62,17 @@ impl MySqlGateway {}
 
 #[async_trait::async_trait]
 impl SessionRepository for MySqlGateway {
-    async fn store_session(&mut self, session: &Session) -> Result<()> {
+    async fn insert_session(&mut self, session: &Session) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO user_sessions (id, created_at, expires_at)
-            VALUES (?, ?, ?);
+            INSERT INTO user_sessions (id, created_at, expires_at, user_identity)
+            VALUES (?, ?, ?, ?);
             "#,
         )
         .bind(session.id.as_str())
         .bind(session.created_at as i64) // Converting usize to i64 for compatibility
         .bind(session.expires_at as i64)
+        .bind(session.user_identity.as_str())
         .execute(&self.pool)
         .await
         .context("Failed to store session in MySql")?;
@@ -81,7 +83,7 @@ impl SessionRepository for MySqlGateway {
     async fn get_session_by_id(&mut self, session_id: &SessionToken) -> Result<Session> {
         let session: Session = sqlx::query_as(
             r#"
-            SELECT id, created_at, expires_at
+            SELECT id, created_at, expires_at, user_identity
             FROM user_sessions
             WHERE id = ?
             "#,
@@ -248,8 +250,8 @@ mod tests {
         let mut repo = MySqlGateway::new(&db_config).await;
         repo._create_session_table().await;
 
-        let session = &Session::new(&Expiry::Day(1));
-        let query = repo.store_session(session).await;
+        let session = &Session::new(&Expiry::Day(1), "user_identity@mail.com");
+        let query = repo.insert_session(session).await;
         assert!(query.is_ok());
 
         let session_from_repo = repo.get_session_by_id(&session.id).await.unwrap();

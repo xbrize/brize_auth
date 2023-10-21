@@ -63,7 +63,7 @@ impl SessionRepository for SurrealGateway {
         }
     }
 
-    async fn store_session(&mut self, session: &Session) -> Result<()> {
+    async fn insert_session(&mut self, session: &Session) -> Result<()> {
         let record = SurrealRecord {
             id: None,
             data: session,
@@ -222,8 +222,8 @@ mod tests {
         };
         let mut repo = SurrealGateway::new(&db_config).await;
 
-        let session = Session::new(&Expiry::Day(1));
-        let query = repo.store_session(&session).await;
+        let session = Session::new(&Expiry::Day(1), "user_identity@mail.com");
+        let query = repo.insert_session(&session).await;
         assert!(query.is_ok());
 
         let session_from_storage = repo.get_session_by_id(&session.id).await.unwrap();

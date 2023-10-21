@@ -36,7 +36,8 @@ CREATE TABLE user_credentials (
 CREATE TABLE user_sessions (
     id CHAR(36) PRIMARY KEY,
     created_at BIGINT UNSIGNED NOT NULL,
-    expires_at BIGINT UNSIGNED NOT NULL
+    expires_at BIGINT UNSIGNED NOT NULL,
+    user_identity VARCHAR(255) NOT NULL
 );
 ```
 
@@ -75,8 +76,8 @@ fn main {
     // Log user in and get a session token back
     let session_token: Result<String> = auth.login(user_identity, raw_password).await;
 
-    // Validate token later for user
-    let validation: Result<bool> = auth.validate_session(session_token).await;
+    // Validate token later for user, this returns the user_identity
+    let validation: Result<String> = auth.validate_session(session_token).await;
 
     // Logout user and delete the session
     let logout_status = Result<()> = auth.logout(session_token).await;

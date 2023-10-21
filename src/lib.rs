@@ -176,10 +176,10 @@ impl Auth {
                 Ok(token)
             }
             SessionType::Session(duration) => {
-                let session = Session::new(duration);
+                let session = Session::new(duration, user_identity);
                 match self.session_gateway {
                     Some(ref mut gateway) => {
-                        gateway.store_session(&session).await?;
+                        gateway.insert_session(&session).await?;
                         Ok(session.id)
                     }
                     None => Err(anyhow::anyhow!("Sessions not enabled")),
@@ -190,17 +190,9 @@ impl Auth {
     }
 
     /// Validates the session token
-    pub async fn validate_session(&mut self, session_token: &str) -> Result<bool> {
+    pub async fn validate_session(&mut self, session_token: &str) -> Result<String> {
         match self.session_type {
-            SessionType::JWT(_) => {
-                let valid = verify_json_web_token(session_token);
-
-                if valid.is_ok() {
-                    Ok(true)
-                } else {
-                    Ok(false)
-                }
-            }
+            SessionType::JWT(_) => verify_json_web_token(session_token),
             SessionType::Session(_) => match self.session_gateway {
                 Some(ref mut gateway) => {
                     let attempt_to_get_session =
@@ -210,15 +202,12 @@ impl Auth {
                         Ok(session) => {
                             if session.is_expired() {
                                 gateway.delete_session(&session_token.to_string()).await?;
-                                Ok(false)
+                                Err(anyhow::anyhow!("Session expired"))
                             } else {
-                                Ok(true)
+                                Ok(session.user_identity)
                             }
                         }
-                        Err(_) => {
-                            println!("Failed to get session during validation");
-                            Ok(false)
-                        }
+                        Err(e) => Err(e),
                     }
                 }
                 None => Err(anyhow::anyhow!("Sessions not enabled")),
@@ -260,12 +249,12 @@ mod tests {
 
         auth.register(user_identity, raw_password).await.unwrap();
         let session = auth.login(user_identity, raw_password).await.unwrap();
-        let validation = auth.validate_session(session.as_str()).await.unwrap();
-        assert!(validation);
+        let validated_user = auth.validate_session(session.as_str()).await.unwrap();
+        assert_eq!(validated_user, user_identity);
 
         auth.logout(&session).await.unwrap();
-        let validation = auth.validate_session(session.as_str()).await.unwrap();
-        assert!(!validation)
+        let validation = auth.validate_session(session.as_str()).await;
+        assert!(validation.is_err())
     }
 
     #[tokio::test]
@@ -290,11 +279,11 @@ mod tests {
 
         auth.register(user_identity, raw_password).await.unwrap();
         let session = auth.login(user_identity, raw_password).await.unwrap();
-        let validation = auth.validate_session(session.as_str()).await.unwrap();
-        assert!(validation);
+        let validated_user = auth.validate_session(session.as_str()).await.unwrap();
+        assert_eq!(validated_user, user_identity);
 
         auth.logout(&session).await.unwrap();
-        let validation = auth.validate_session(session.as_str()).await.unwrap();
-        assert!(!validation)
+        let validation = auth.validate_session(session.as_str()).await;
+        assert!(validation.is_err())
     }
 }

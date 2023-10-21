@@ -25,7 +25,7 @@ impl RedisGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for RedisGateway {
-    async fn store_session(&mut self, session: &Session) -> Result<()> {
+    async fn insert_session(&mut self, session: &Session) -> Result<()> {
         let session_json = serde_json::to_string(&session)
             .context("Failed to serialize session id before storing in Redis")?;
 
@@ -77,8 +77,8 @@ mod test {
 
         let mut repo = RedisGateway::new(&config).await;
 
-        let session = Session::new(&Expiry::Day(1));
-        let query = repo.store_session(&session).await;
+        let session = Session::new(&Expiry::Day(1), "user_identity@mail.com");
+        let query = repo.insert_session(&session).await;
         assert!(query.is_ok());
 
         let session_from_storage = repo.get_session_by_id(&session.id).await.unwrap();
