@@ -15,6 +15,7 @@ pub async fn planet_scale_example() -> Result<()> {
     // ** Set database params
     let db_config = DatabaseConfig {
         host: get_env("PSCALE_DB_HOST"),
+        port: get_env("PSCALE_DB_PORT"),
         user_name: get_env("PSCALE_DB_USERNAME"),
         password: get_env("PSCALE_DB_PASSWORD"),
         db_name: get_env("PSCALE_DB_NAME"),

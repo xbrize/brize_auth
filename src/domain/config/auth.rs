@@ -14,6 +14,7 @@ pub struct DatabaseConfig {
     pub password: String,
     pub user_name: String,
     pub host: String,
+    pub port: String,
     pub namespace: Option<String>,
 }
 

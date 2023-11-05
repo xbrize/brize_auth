@@ -227,7 +227,8 @@ mod tests {
     #[tokio::test]
     async fn test_auth_mysql() {
         let db_config = DatabaseConfig {
-            host: "localhost:3306".to_string(),
+            host: "localhost".to_string(),
+            port: "3306".to_string(),
             db_name: "mysql".to_string(),
             user_name: "root".to_string(),
             password: "my-secret-pw".to_string(),
@@ -262,7 +263,8 @@ mod tests {
     async fn test_auth_surreal() {
         let db_config = DatabaseConfig {
             db_name: "test".to_string(),
-            host: "127.0.0.1:8000".to_string(),
+            host: "127.0.0.1".to_string(),
+            port: "8000".to_string(),
             user_name: "root".to_string(),
             password: "surreal_ps".to_string(),
             namespace: Some("test".to_string()),

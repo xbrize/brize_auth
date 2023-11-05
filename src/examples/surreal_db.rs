@@ -18,6 +18,7 @@ pub async fn surreal_db_example() -> Result<()> {
         user_name: get_env("SURREAL_DB_USERNAME"),
         password: get_env("SURREAL_DB_PASSWORD"),
         db_name: get_env("SURREAL_DB_NAME"),
+        port: get_env("SURREAL_DB_PORT"),
         namespace: Some(get_env("SURREAL_DB_NAMESPACE")),
     };
 

@@ -23,7 +23,8 @@ pub struct SurrealGateway {
 
 impl SurrealGateway {
     pub async fn new(config: &DatabaseConfig) -> Self {
-        let db = Surreal::new::<Ws>(config.host.as_str())
+        let address = format!("{}:{}", config.host, config.port);
+        let db = Surreal::new::<Ws>(address.as_str())
             .await
             .expect("Failed connection with SurrealDB");
 
@@ -215,9 +216,10 @@ mod tests {
     async fn test_surreal_session_repo() {
         let db_config = DatabaseConfig {
             db_name: "test".to_string(),
-            host: "127.0.0.1:8000".to_string(),
+            host: "127.0.0.1".to_string(),
+            port: "8000".to_string(),
             user_name: "root".to_string(),
-            password: "surreal_ps".to_string(),
+            password: "root".to_string(),
             namespace: Some("test".to_string()),
         };
         let mut repo = SurrealGateway::new(&db_config).await;
@@ -243,9 +245,10 @@ mod tests {
         // Start database
         let db_config = DatabaseConfig {
             db_name: "test".to_string(),
-            host: "127.0.0.1:8000".to_string(),
+            host: "127.0.0.1".to_string(),
+            port: "8000".to_string(),
             user_name: "root".to_string(),
-            password: "surreal_ps".to_string(),
+            password: "root".to_string(),
             namespace: Some("test".to_string()),
         };
         let repo = SurrealGateway::new(&db_config).await;

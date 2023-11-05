@@ -12,7 +12,10 @@ pub struct RedisGateway {
 
 impl RedisGateway {
     pub async fn new(config: &DatabaseConfig) -> Self {
-        let addr = format!("redis://:{}@{}/", config.password, config.host);
+        let addr = format!(
+            "redis://:{}@{}:{}/",
+            config.password, config.host, config.port
+        );
         let client = redis::Client::open(addr).expect("Failed to connect to Redis client");
         let conn = client
             .get_async_connection()
@@ -72,6 +75,7 @@ mod test {
             password: "mypassword".to_string(),
             user_name: "".to_string(),
             db_name: "".to_string(),
+            port: "6379".to_string(),
             namespace: None,
         };
 

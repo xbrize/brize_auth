@@ -16,8 +16,8 @@ pub struct MySqlGateway {
 impl MySqlGateway {
     pub async fn new(config: &DatabaseConfig) -> Self {
         let addr = format!(
-            "mysql://{}:{}@{}/{}",
-            config.user_name, config.password, config.host, config.db_name
+            "mysql://{}:{}@{}:{}/{}",
+            config.user_name, config.password, config.host, config.port, config.db_name
         );
         let pool = MySqlPool::connect(addr.as_str())
             .await
@@ -240,10 +240,11 @@ mod tests {
     #[tokio::test]
     async fn test_mysql_session_repo() {
         let db_config = DatabaseConfig {
-            host: "localhost:3306".to_string(),
+            host: "localhost".to_string(),
             password: "my-secret-pw".to_string(),
             db_name: "mysql".to_string(),
             user_name: "root".to_string(),
+            port: "3306".to_string(),
             namespace: None,
         };
 
@@ -266,10 +267,11 @@ mod tests {
     #[tokio::test]
     async fn test_mysql_credentials_repo() {
         let db_config = DatabaseConfig {
-            host: "localhost:3306".to_string(),
+            host: "localhost".to_string(),
             password: "my-secret-pw".to_string(),
             db_name: "mysql".to_string(),
             user_name: "root".to_string(),
+            port: "3306".to_string(),
             namespace: None,
         };
 
