@@ -71,7 +71,7 @@ fn main {
 
     // Create a new set of credentials..
     // .. returns the id of the credentials row, use this as some kind of reference key on YOUR user table
-    let credentials_id: Option<String> = auth.register(user_identity, raw_password).await;
+    let credentials_id: Result<String> = auth.register(user_identity, raw_password).await;
 
     // Log user in and get a session token back
     let session_token: Result<String> = auth.login(user_identity, raw_password).await;
@@ -207,3 +207,5 @@ scripts/tests/<desired_script>.sh
 - [ ] Configure custom claims for JWT
 - [ ] Add refresh config for Session and JWT
 - [ ] Add OAuth
+- [ ] Add feature splitting
+- [ ] add a port to config

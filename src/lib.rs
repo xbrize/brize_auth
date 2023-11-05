@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 mod application;
 mod domain;
 pub mod examples;

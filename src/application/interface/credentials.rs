@@ -2,7 +2,7 @@ use crate::domain::entity::Credentials;
 use anyhow::Result;
 
 #[async_trait::async_trait]
-pub trait CredentialsRepository {
+pub trait CredentialsRepository: Send + Sync {
     async fn find_credentials_by_user_identity(&self, user_identity: &str) -> Result<Credentials>;
 
     async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials>;
