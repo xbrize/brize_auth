@@ -98,6 +98,7 @@ pub struct DatabaseConfig {
     pub password: String, // Password for user
     pub user_name: String, // Name of user
     pub host: String, // Host IP
+    pub port: String,
     pub namespace: Option<String> // Optional namespace in db
 }
 

@@ -6,3 +6,6 @@ test-mysql:
 
 test-surreal:
     -scripts/tests/gateways/surreal_gateway.test.sh
+
+publish-changelog:
+    git cliff bd18f09.. --tag 0.8.0 --prepend CHANGELOG.md    

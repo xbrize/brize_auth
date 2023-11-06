@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2023-11-06
+
+### Bug Fixes
+
+- Async trait Send and Sync
+
+### Add
+
+- Port to database configs
+
 ## [0.7.0] - 2023-10-21
 
 ### Bug Fixes
