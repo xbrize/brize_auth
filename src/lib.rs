@@ -6,16 +6,15 @@ mod infrastructure;
 pub use domain::config::{AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
 
 use anyhow::{Context, Result};
+use infrastructure::services::password_hash::hash_raw_password;
 
 use crate::{
-    application::{
-        command::{
-            generate_json_web_token, hash_raw_password, verify_json_web_token, verify_password,
-        },
-        interface::{CredentialsRepository, SessionRepository},
-    },
+    application::interface::{CredentialsRepository, SessionRepository},
     domain::entity::{Claims, Credentials, CredentialsId, Session, SessionToken},
-    infrastructure::gateway::{MySqlGateway, RedisGateway, SurrealGateway},
+    infrastructure::{
+        gateway::{mysql::MySqlGateway, redis::RedisGateway, surreal::SurrealGateway},
+        services::*,
+    },
 };
 
 pub struct Auth {

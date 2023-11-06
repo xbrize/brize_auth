@@ -1,8 +1,8 @@
-mod redis;
-pub use redis::*;
+#[cfg(feature = "redis")]
+pub mod redis;
 
-mod sql;
-pub use sql::*;
+#[cfg(feature = "mysql")]
+pub mod mysql;
 
-mod surreal;
-pub use surreal::*;
+#[cfg(feature = "surreal")]
+pub mod surreal;
