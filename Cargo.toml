@@ -1,6 +1,6 @@
 [package]
 name = "brize_auth"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2021"
 authors=["Jonathan Karrer <karrerjon@gmail.com>"]
 description = "A tiny async authentication library."
@@ -11,7 +11,6 @@ keywords = ["auth", "web"]
 categories = ["authentication"]
 
 [features]
-default = ["mysql"]
 mysql = ["dep:sqlx"]
 surreal = ["dep:surrealdb"]
 redis = ["dep:redis"]

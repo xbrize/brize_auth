@@ -19,7 +19,7 @@ The sessions are optional, in case you want to use some other session solution. 
 First install the crate
 
 ```bash
-cargo add brize_auth
+cargo add brize_auth --features "mysql"
 ```
 
 Next, set up the database tables with this schema, if using a SQL database
@@ -43,27 +43,36 @@ CREATE TABLE user_sessions (
 
 ## Usage
 
+#### MySql feature
+
 ```rust
-use brize_auth::{Auth, AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
+use anyhow::{Context, Result};
+use brize_auth::{
+    auth::{Auth, AuthBuilder},
+    config::{DatabaseConfig, Expiry, SessionType},
+    mysql::MySqlGateway,
+};
 
 #[tokio::main]
 fn main {
     // Set your database params
-    let db_config = DatabaseConfig {
-        host: "localhost:3306".to_string(),
+      let db_config = DatabaseConfig {
+        host: "localhost".to_string(),
         db_name: "mysql".to_string(),
         user_name: "root".to_string(),
         password: "my-secret-pw".to_string(),
-        namespace: None
+        port: "3306".to_string(),
+        namespace: None,
     };
 
     // Start your auth config
-    let config = AuthConfig::new()
-        .set_credentials_gateway(GatewayType::MySql(db_config))
-        .set_session_type(SessionType::Session(Expiry::Month(1)));
-
-    // Init auth with configs
-    let mut auth = Auth::new(config).await.unwrap();
+    let auth: Auth<MySqlGateway, MySqlGateway> = AuthBuilder::new()
+        .set_credentials_db_config(&db_config)
+        .set_sessions_db_config(&db_config)
+        .set_session_type(SessionType::Session(Expiry::Month(1)))
+        .build()
+        .await
+        .context("Failed to build auth")?;
 
     // Get user credentials from a request
     let user_identity = "test@gmail.com";
@@ -71,13 +80,13 @@ fn main {
 
     // Create a new set of credentials..
     // .. returns the id of the credentials row, use this as some kind of reference key on YOUR user table
-    let credentials_id: Result<String> = auth.register(user_identity, raw_password).await;
+    let credentials_id: String = auth.register(user_identity, raw_password).await?;
 
     // Log user in and get a session token back
-    let session_token: Result<String> = auth.login(user_identity, raw_password).await;
+    let session_token: String = auth.login(user_identity, raw_password).await?;
 
     // Validate token later for user, this returns the user_identity
-    let validation: Result<String> = auth.validate_session(session_token).await;
+    let validation: String = auth.validate_session(session_token).await?;
 
     // Logout user and delete the session
     let logout_status = Result<()> = auth.logout(session_token).await;
@@ -98,13 +107,8 @@ pub struct DatabaseConfig {
     pub password: String, // Password for user
     pub user_name: String, // Name of user
     pub host: String, // Host IP
+    pub port: String, // Port for host
     pub namespace: Option<String> // Optional namespace in db
-}
-
-enum GatewayType {
-    MySql(DatabaseConfig), // MySql databases
-    Surreal(DatabaseConfig), // SurrealDB
-    Redis(DatabaseConfig), // Redis instances
 }
 
 enum SessionType {
@@ -121,17 +125,15 @@ enum Expiry {
     Year(u64), // Years in EPOCH
 }
 
-let config = AuthConfig::new()
-    // Set your preferred database tech for the credentials table
-    .set_credentials_gateway(GatewayType::MySql(DatabaseConfig))
-
-    // Set your session type, Session, JWT, or None to disable and the duration
-    .set_session_type(SessionType::Session(Expiry::Month(1)));
-
-    // Override the default session GatewayType from above
-    .set_session_gateway(GatewayType::Redis(DatabaseConfig))
-
-let auth = Auth::new(config).await;
+let auth: Auth<C, S> = AuthBuilder::new()
+        // Set configs for connecting to the database that will hold your credentials table
+        .set_credentials_db_config(&db_config)
+        // Set configs for connecting to the database that will hold your sessions table
+        .set_sessions_db_config(&db_config)
+        // Set your session type, Session, JWT, or None to disable and the duration
+        .set_session_type(SessionType::Session(Expiry::Month(1)))
+        // Buld your Auth object
+        .build()
 ```
 
 ## Supported Databases

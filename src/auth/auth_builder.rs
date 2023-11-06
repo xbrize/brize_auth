@@ -5,13 +5,13 @@ use crate::{
 };
 use anyhow::Result;
 
-pub struct AuthBuilder {
-    pub credential_db_config: Option<DatabaseConfig>,
-    pub session_db_config: Option<DatabaseConfig>,
+pub struct AuthBuilder<'a> {
+    pub credential_db_config: Option<&'a DatabaseConfig>,
+    pub session_db_config: Option<&'a DatabaseConfig>,
     pub session_type: SessionType,
 }
 
-impl AuthBuilder {
+impl<'a> AuthBuilder<'a> {
     pub fn new() -> Self {
         AuthBuilder {
             credential_db_config: None,
@@ -20,12 +20,12 @@ impl AuthBuilder {
         }
     }
 
-    pub fn set_credentials_db_config(mut self, db_configs: DatabaseConfig) -> Self {
+    pub fn set_credentials_db_config(mut self, db_configs: &'a DatabaseConfig) -> Self {
         self.credential_db_config = Some(db_configs);
         self
     }
 
-    pub fn set_sessions_db_config(mut self, db_configs: DatabaseConfig) -> Self {
+    pub fn set_sessions_db_config(mut self, db_configs: &'a DatabaseConfig) -> Self {
         self.session_db_config = Some(db_configs);
         self
     }
