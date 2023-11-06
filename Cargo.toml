@@ -11,9 +11,8 @@ keywords = ["auth", "web"]
 categories = ["authentication"]
 
 [features]
-# default = ["redis", "jwt", "mysql", "surreal"]
+default = ["mysql"]
 redis = ["dep:redis"]
-jwt = ["dep:jsonwebtoken"]
 mysql = ["dep:sqlx"]
 surreal = ["dep:surrealdb"]
 
@@ -27,7 +26,7 @@ serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.107"
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 uuid = { version = "1.4.1", features = ["v4", "fast-rng"] }
+jsonwebtoken = "8.3.0"
 redis = { version = "0.23.3", features = ["aio", "tokio-comp"], optional = true }
 surrealdb = {version = "1.0.0", optional = true }
 sqlx = { version = "0.7.2", features = ["runtime-tokio", "mysql", "tls-rustls"], optional = true }
-jsonwebtoken = {version = "8.3.0", optional = true}
