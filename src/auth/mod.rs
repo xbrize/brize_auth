@@ -1,7 +1,7 @@
 #[cfg(feature = "mysql")]
 pub mod mysql;
 
-// #[cfg(feature = "surreal")]
+#[cfg(feature = "surreal")]
 pub mod surreal;
 
 use crate::domain::entity::{Claims, Credentials, CredentialsId, Session, SessionToken};
