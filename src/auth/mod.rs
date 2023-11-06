@@ -1,12 +1,14 @@
-pub mod auth_builder;
+mod auth_builder;
+pub use auth_builder::AuthBuilder;
+
 use crate::domain::entity::{Claims, Credentials, CredentialsId, Session, SessionToken};
 use crate::{
     application::interface::{CredentialsRepository, SessionRepository},
+    config::SessionType,
     infrastructure::services::{
         jwt::{generate_json_web_token, verify_json_web_token},
         password_hash::{hash_raw_password, verify_password},
     },
-    SessionType,
 };
 use anyhow::{Context, Result};
 

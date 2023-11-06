@@ -1,21 +1,32 @@
 use super::Auth;
-use crate::{infrastructure::gateway, DatabaseConfig, SessionType};
+use crate::{
+    config::{DatabaseConfig, SessionType},
+    infrastructure::gateway,
+};
 use anyhow::Result;
 
 pub struct AuthBuilder {
-    pub credential_db_config: DatabaseConfig,
-    pub session_db_config: DatabaseConfig,
+    pub credential_db_config: Option<DatabaseConfig>,
+    pub session_db_config: Option<DatabaseConfig>,
     pub session_type: SessionType,
 }
 
 impl AuthBuilder {
+    pub fn new() -> Self {
+        AuthBuilder {
+            credential_db_config: None,
+            session_db_config: None,
+            session_type: SessionType::None,
+        }
+    }
+
     pub fn set_credentials_db_config(mut self, db_configs: DatabaseConfig) -> Self {
-        self.credential_db_config = db_configs;
+        self.credential_db_config = Some(db_configs);
         self
     }
 
     pub fn set_sessions_db_config(mut self, db_configs: DatabaseConfig) -> Self {
-        self.session_db_config = db_configs;
+        self.session_db_config = Some(db_configs);
         self
     }
 
@@ -28,8 +39,11 @@ impl AuthBuilder {
     pub async fn build(
         self,
     ) -> Result<Auth<gateway::mysql::MySqlGateway, gateway::mysql::MySqlGateway>> {
-        let credentials_gateway =
-            gateway::mysql::MySqlGateway::new(&self.credential_db_config).await;
+        let cred_configs = &self
+            .credential_db_config
+            .expect("Credentials database config not set");
+
+        let credentials_gateway = gateway::mysql::MySqlGateway::new(cred_configs).await;
 
         match self.session_type {
             SessionType::None => Ok(Auth {
@@ -38,8 +52,10 @@ impl AuthBuilder {
                 session_type: SessionType::None,
             }),
             SessionType::Session(duration) => {
-                let session_gateway =
-                    gateway::mysql::MySqlGateway::new(&self.session_db_config).await;
+                let sesh_configs = &self
+                    .session_db_config
+                    .expect("Sessions database config not set");
+                let session_gateway = gateway::mysql::MySqlGateway::new(sesh_configs).await;
 
                 Ok(Auth {
                     credentials_gateway,
@@ -59,8 +75,10 @@ impl AuthBuilder {
     pub async fn build(
         self,
     ) -> Result<Auth<gateway::surreal::SurrealGateway, gateway::surreal::SurrealGateway>> {
-        let credentials_gateway =
-            gateway::surreal::SurrealGateway::new(&self.credential_db_config).await;
+        let cred_configs = &self
+            .credential_db_config
+            .expect("Credentials database config not set");
+        let credentials_gateway = gateway::surreal::SurrealGateway::new(cred_configs).await;
 
         match self.session_type {
             SessionType::None => Ok(Auth {
@@ -69,8 +87,10 @@ impl AuthBuilder {
                 session_type: SessionType::None,
             }),
             SessionType::Session(duration) => {
-                let session_gateway =
-                    gateway::surreal::SurrealGateway::new(&self.session_db_config).await;
+                let sesh_configs = &self
+                    .session_db_config
+                    .expect("Sessions database config not set");
+                let session_gateway = gateway::surreal::SurrealGateway::new(sesh_configs).await;
 
                 Ok(Auth {
                     credentials_gateway,
@@ -86,12 +106,14 @@ impl AuthBuilder {
         }
     }
 
-    #[cfg(feature = "surreal-redis")]
-    pub async fn build(
+    #[cfg(all(feature = "redis", feature = "surreal"))]
+    pub async fn build_with_redis_sessions(
         self,
     ) -> Result<Auth<gateway::surreal::SurrealGateway, gateway::redis::RedisGateway>> {
-        let credentials_gateway =
-            gateway::surreal::SurrealGateway::new(&self.credential_db_config).await;
+        let cred_configs = &self
+            .credential_db_config
+            .expect("Credentials database config not set");
+        let credentials_gateway = gateway::surreal::SurrealGateway::new(cred_configs).await;
 
         match self.session_type {
             SessionType::None => Ok(Auth {
@@ -100,8 +122,10 @@ impl AuthBuilder {
                 session_type: SessionType::None,
             }),
             SessionType::Session(duration) => {
-                let session_gateway =
-                    gateway::redis::RedisGateway::new(&self.session_db_config).await;
+                let sesh_configs = &self
+                    .session_db_config
+                    .expect("Sessions database config not set");
+                let session_gateway = gateway::redis::RedisGateway::new(sesh_configs).await;
 
                 Ok(Auth {
                     credentials_gateway,
@@ -117,12 +141,14 @@ impl AuthBuilder {
         }
     }
 
-    #[cfg(feature = "mysql-redis")]
-    pub async fn build(
+    #[cfg(all(feature = "redis", feature = "mysql"))]
+    pub async fn build_with_redis_sessions(
         self,
     ) -> Result<Auth<gateway::mysql::MySqlGateway, gateway::redis::RedisGateway>> {
-        let credentials_gateway =
-            gateway::mysql::MySqlGateway::new(&self.credential_db_config).await;
+        let cred_configs = &self
+            .credential_db_config
+            .expect("Credentials database config not set");
+        let credentials_gateway = gateway::mysql::MySqlGateway::new(cred_configs).await;
 
         match self.session_type {
             SessionType::None => Ok(Auth {
@@ -131,8 +157,10 @@ impl AuthBuilder {
                 session_type: SessionType::None,
             }),
             SessionType::Session(duration) => {
-                let session_gateway =
-                    gateway::redis::RedisGateway::new(&self.session_db_config).await;
+                let sesh_configs = &self
+                    .session_db_config
+                    .expect("Sessions database config not set");
+                let session_gateway = gateway::redis::RedisGateway::new(sesh_configs).await;
 
                 Ok(Auth {
                     credentials_gateway,

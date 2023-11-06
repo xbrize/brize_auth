@@ -11,10 +11,10 @@ keywords = ["auth", "web"]
 categories = ["authentication"]
 
 [features]
+default = ["mysql"]
 mysql = ["dep:sqlx"]
 surreal = ["dep:surrealdb"]
-mysql-redis = ["mysql", "dep:redis"]
-surreal-redis = ["surreal", "dep:redis"]
+redis = ["dep:redis"]
 
 
 [dependencies]

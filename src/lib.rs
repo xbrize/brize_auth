@@ -1,8 +1,12 @@
 #![forbid(unsafe_code)]
-mod application;
-mod infrastructure;
 
 mod domain;
-pub use domain::config::{DatabaseConfig, Expiry, SessionType};
+pub use domain::config;
+
+mod application;
+pub use application::interface;
+
+mod infrastructure;
+pub use infrastructure::gateway::*;
 
 pub mod auth;

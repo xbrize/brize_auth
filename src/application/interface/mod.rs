@@ -1,5 +1,5 @@
 mod credentials;
-pub use credentials::*;
+pub use credentials::CredentialsRepository;
 
 mod session;
-pub use session::*;
+pub use session::SessionRepository;
