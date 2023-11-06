@@ -1,9 +1,4 @@
-#[cfg(feature = "mysql")]
-pub mod mysql;
-
-#[cfg(feature = "surreal")]
-pub mod surreal;
-
+pub mod auth_builder;
 use crate::domain::entity::{Claims, Credentials, CredentialsId, Session, SessionToken};
 use crate::{
     application::interface::{CredentialsRepository, SessionRepository},
