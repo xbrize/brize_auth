@@ -1,15 +1,13 @@
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 
 pub type CredentialsId = String;
 
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Credentials {
     pub id: CredentialsId,
     pub user_identity: String,
 
-    // TODO need to enable this but still pass tests
-    // #[serde(skip_deserializing)]
+    #[serde(skip_deserializing)]
     pub hashed_password: String,
 }
 

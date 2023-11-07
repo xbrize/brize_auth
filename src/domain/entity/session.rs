@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 
 use crate::domain::config::Expiry;
 
 pub type SessionToken = String;
 
-#[derive(Serialize, Deserialize, FromRow)]
+#[derive(Serialize, Deserialize)]
 pub struct Session {
     pub id: SessionToken,
     pub created_at: u64,

@@ -1,5 +1,8 @@
 use anyhow::{Context, Result};
-use sqlx::mysql::MySqlPool;
+use sqlx::{
+    mysql::{MySqlPool, MySqlRow},
+    FromRow, Row,
+};
 
 use crate::{
     application::interface::{CredentialsRepository, SessionRepository},
@@ -8,6 +11,27 @@ use crate::{
         entity::{Credentials, Session, SessionToken},
     },
 };
+
+impl FromRow<'_, MySqlRow> for Session {
+    fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            created_at: row.try_get("created_at")?,
+            expires_at: row.try_get("expires_at")?,
+            user_identity: row.try_get("user_identity")?,
+        })
+    }
+}
+
+impl FromRow<'_, MySqlRow> for Credentials {
+    fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
+        Ok(Self {
+            id: row.try_get("id")?,
+            hashed_password: row.try_get("hashed_password")?,
+            user_identity: row.try_get("user_identity")?,
+        })
+    }
+}
 
 pub struct MySqlGateway {
     pub pool: MySqlPool,
