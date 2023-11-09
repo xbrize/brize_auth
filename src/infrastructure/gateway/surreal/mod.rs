@@ -231,6 +231,7 @@ mod tests {
         let session_from_storage = repo.get_session_by_id(&session.id).await.unwrap();
         assert!(!session_from_storage.is_expired());
         assert_eq!(session_from_storage.id, session.id);
+        assert_eq!(session_from_storage.csrf_token, session.csrf_token);
 
         repo.delete_session(&session.id).await.unwrap();
         let session_from_repo = repo.get_session_by_id(&session.id).await;

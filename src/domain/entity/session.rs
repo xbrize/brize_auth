@@ -10,6 +10,7 @@ pub struct Session {
     pub created_at: u64,
     pub expires_at: u64,
     pub user_identity: String,
+    pub csrf_token: String,
 }
 
 impl Session {
@@ -19,6 +20,7 @@ impl Session {
             created_at: Expiry::now(),
             expires_at: duration.time(),
             user_identity: user_identity.to_string(),
+            csrf_token: uuid::Uuid::new_v4().to_string(),
         }
     }
 

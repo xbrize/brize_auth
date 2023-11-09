@@ -19,6 +19,7 @@ impl FromRow<'_, MySqlRow> for Session {
             created_at: row.try_get("created_at")?,
             expires_at: row.try_get("expires_at")?,
             user_identity: row.try_get("user_identity")?,
+            csrf_token: row.try_get("csrf_token")?,
         })
     }
 }
@@ -57,7 +58,8 @@ impl MySqlGateway {
                 id CHAR(36) PRIMARY KEY,  
                 created_at BIGINT UNSIGNED NOT NULL,
                 expires_at BIGINT UNSIGNED NOT NULL,
-                user_identity VARCHAR(255) NOT NULL
+                user_identity VARCHAR(255) NOT NULL,
+                csrf_token CHAR(36) NOT NULL
             );
             "#,
         )
@@ -89,14 +91,15 @@ impl SessionRepository for MySqlGateway {
     async fn insert_session(&mut self, session: &Session) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO user_sessions (id, created_at, expires_at, user_identity)
-            VALUES (?, ?, ?, ?);
+            INSERT INTO user_sessions (id, created_at, expires_at, user_identity, csrf_token)
+            VALUES (?, ?, ?, ?, ?);
             "#,
         )
         .bind(session.id.as_str())
         .bind(session.created_at as i64) // Converting usize to i64 for compatibility
         .bind(session.expires_at as i64)
         .bind(session.user_identity.as_str())
+        .bind(session.csrf_token.as_str())
         .execute(&self.pool)
         .await
         .context("Failed to store session in MySql")?;
@@ -107,7 +110,7 @@ impl SessionRepository for MySqlGateway {
     async fn get_session_by_id(&mut self, session_id: &SessionToken) -> Result<Session> {
         let session: Session = sqlx::query_as(
             r#"
-            SELECT id, created_at, expires_at, user_identity
+            SELECT id, created_at, expires_at, user_identity, csrf_token
             FROM user_sessions
             WHERE id = ?
             "#,
@@ -282,6 +285,7 @@ mod tests {
         let session_from_repo = repo.get_session_by_id(&session.id).await.unwrap();
         assert_eq!(session_from_repo.is_expired(), false);
         assert_eq!(session_from_repo.id, session.id);
+        assert_eq!(session_from_repo.csrf_token, session.csrf_token);
 
         repo.delete_session(&session.id).await.unwrap();
         let session_from_repo = repo.get_session_by_id(&session.id).await;
