@@ -1,13 +1,12 @@
 #![forbid(unsafe_code)]
 
+pub(crate) mod helpers;
+
 mod domain;
-pub use domain::config;
-pub use domain::entity;
+pub use domain::*;
 
 mod application;
-pub use application::interface;
+pub use application::*;
 
 mod infrastructure;
 pub use infrastructure::gateway::*;
-
-pub mod auth;

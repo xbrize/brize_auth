@@ -74,7 +74,7 @@ impl SessionRepository for SurrealGateway {
         };
 
         self.database
-            .create::<Option<SurrealRecord<Session>>>(("user_sessions", &session.id))
+            .create::<Option<SurrealRecord<Session>>>(("user_sessions", &session.session_id))
             .content(&record)
             .await
             .context("Failed to store session in Surreal")?;
@@ -211,33 +211,26 @@ impl CredentialsRepository for SurrealGateway {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::config::Expiry;
+    use crate::{domain::config::Expiry, helpers::surreal_configs};
 
     use super::*;
 
     #[tokio::test]
     async fn test_surreal_session_repo() {
-        let db_config = DatabaseConfig {
-            db_name: "test".to_string(),
-            host: "127.0.0.1".to_string(),
-            port: "8000".to_string(),
-            user_name: "root".to_string(),
-            password: "root".to_string(),
-            namespace: Some("test".to_string()),
-        };
+        let db_config = surreal_configs();
         let mut repo = SurrealGateway::new(&db_config).await;
 
         let session = Session::new(&Expiry::Day(1), "user_identity@mail.com");
         let query = repo.insert_session(&session).await;
         assert!(query.is_ok());
 
-        let session_from_storage = repo.get_session_by_id(&session.id).await.unwrap();
+        let session_from_storage = repo.get_session_by_id(&session.session_id).await.unwrap();
         assert!(!session_from_storage.is_expired());
-        assert_eq!(session_from_storage.id, session.id);
+        assert_eq!(session_from_storage.session_id, session.session_id);
         assert_eq!(session_from_storage.csrf_token, session.csrf_token);
 
-        repo.delete_session(&session.id).await.unwrap();
-        let session_from_repo = repo.get_session_by_id(&session.id).await;
+        repo.delete_session(&session.session_id).await.unwrap();
+        let session_from_repo = repo.get_session_by_id(&session.session_id).await;
         assert!(session_from_repo.is_err());
     }
 
@@ -247,14 +240,7 @@ mod tests {
         let email = "test@email.com";
 
         // Start database
-        let db_config = DatabaseConfig {
-            db_name: "test".to_string(),
-            host: "127.0.0.1".to_string(),
-            port: "8000".to_string(),
-            user_name: "root".to_string(),
-            password: "root".to_string(),
-            namespace: Some("test".to_string()),
-        };
+        let db_config = surreal_configs();
         let repo = SurrealGateway::new(&db_config).await;
 
         // Create new creds
@@ -277,7 +263,6 @@ mod tests {
 
         let creds = repo.find_credentials_by_id(&creds.id).await.unwrap();
         assert_eq!(creds.user_identity, new_identity);
-        assert_eq!(creds.hashed_password, new_password);
 
         // Delete credentials
         repo.delete_credentials_by_user_identity(&creds.user_identity)

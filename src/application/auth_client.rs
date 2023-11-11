@@ -30,14 +30,10 @@ impl AuthClient<gateway::surreal::SurrealGateway> {
 
 impl<C: CredentialsRepository> AuthClient<C> {
     /// Register a new user and insert them into the database if user does not already exist
-    pub async fn register(
-        &mut self,
-        user_identity: &str,
-        raw_password: &str,
-    ) -> Result<CredentialsId> {
+    pub async fn register(&self, user_name: &str, raw_password: &str) -> Result<CredentialsId> {
         match self
             .gateway
-            .find_credentials_by_user_identity(user_identity)
+            .find_credentials_by_user_identity(user_name)
             .await
         {
             Ok(_) => {
@@ -48,7 +44,7 @@ impl<C: CredentialsRepository> AuthClient<C> {
             Err(_) => {
                 let hashed_password = hash_raw_password(raw_password);
 
-                let credentials = Credentials::new(user_identity, hashed_password.as_str());
+                let credentials = Credentials::new(user_name, hashed_password.as_str());
 
                 self.gateway
                     .insert_credentials(&credentials)
@@ -61,10 +57,10 @@ impl<C: CredentialsRepository> AuthClient<C> {
     }
 
     /// Matches credentials provided by the user with the what is in the database
-    pub async fn verify_credentials(&self, user_identity: &str, raw_password: &str) -> Result<()> {
+    pub async fn verify_credentials(&self, user_name: &str, raw_password: &str) -> Result<()> {
         let creds = self
             .gateway
-            .find_credentials_by_user_identity(&user_identity)
+            .find_credentials_by_user_identity(&user_name)
             .await?;
 
         if verify_password(raw_password, &creds.hashed_password).is_ok() {
@@ -79,5 +75,27 @@ impl<C: CredentialsRepository> AuthClient<C> {
         self.gateway
             .delete_credentials_by_user_identity(user_identity)
             .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::helpers::mysql_configs;
+
+    #[tokio::test]
+    async fn test_mysql_auth() {
+        let db_configs = mysql_configs();
+        let auth = AuthClient::new(&db_configs).await;
+
+        // create random user creds
+        let random_str = &uuid::Uuid::new_v4().to_string();
+        let email = &random_str[..10];
+        let password = "secret-test-password";
+        let creds_id = auth.register(email, password).await.unwrap();
+        assert_eq!(creds_id.len(), 36);
+
+        // login attempt
+        auth.verify_credentials(email, password).await.unwrap();
     }
 }

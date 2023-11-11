@@ -16,10 +16,10 @@ use crate::{
 impl FromRow<'_, MySqlRow> for Session {
     fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
         Ok(Self {
-            id: row.try_get("id")?,
+            session_id: row.try_get("session_id")?,
             created_at: row.try_get("created_at")?,
             expires_at: row.try_get("expires_at")?,
-            user_identity: row.try_get("user_identity")?,
+            user_id: row.try_get("user_id")?,
             csrf_token: row.try_get("csrf_token")?,
         })
     }
@@ -51,38 +51,6 @@ impl MySqlGateway {
 
         Self { pool }
     }
-
-    pub async fn _create_session_table(&self) {
-        sqlx::query(
-            r#"
-            CREATE TABLE user_sessions (
-                id CHAR(36) PRIMARY KEY,  
-                created_at BIGINT UNSIGNED NOT NULL,
-                expires_at BIGINT UNSIGNED NOT NULL,
-                user_identity VARCHAR(255) NOT NULL,
-                csrf_token CHAR(36) NOT NULL
-            );
-            "#,
-        )
-        .execute(&self.pool)
-        .await
-        .unwrap();
-    }
-
-    pub async fn _create_credentials_table(&self) {
-        sqlx::query(
-            r#"
-            CREATE TABLE user_credentials (
-                id CHAR(36) PRIMARY KEY,
-                user_identity VARCHAR(255) NOT NULL,
-                hashed_password VARCHAR(255) NOT NULL
-            );
-            "#,
-        )
-        .execute(&self.pool)
-        .await
-        .unwrap();
-    }
 }
 
 impl MySqlGateway {}
@@ -92,14 +60,14 @@ impl SessionRepository for MySqlGateway {
     async fn insert_session(&mut self, session: &Session) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO user_sessions (id, created_at, expires_at, user_identity, csrf_token)
+            INSERT INTO user_sessions (session_id, created_at, expires_at, user_id, csrf_token)
             VALUES (?, ?, ?, ?, ?);
             "#,
         )
-        .bind(session.id.as_str())
+        .bind(session.session_id.as_str())
         .bind(session.created_at as i64) // Converting usize to i64 for compatibility
         .bind(session.expires_at as i64)
-        .bind(session.user_identity.as_str())
+        .bind(session.user_id.as_str())
         .bind(session.csrf_token.as_str())
         .execute(&self.pool)
         .await
@@ -111,9 +79,9 @@ impl SessionRepository for MySqlGateway {
     async fn get_session_by_id(&mut self, session_id: &SessionToken) -> Result<Session> {
         let session: Session = sqlx::query_as(
             r#"
-            SELECT id, created_at, expires_at, user_identity, csrf_token
+            SELECT session_id, created_at, expires_at, user_id, csrf_token
             FROM user_sessions
-            WHERE id = ?
+            WHERE session_id = ?
             "#,
         )
         .bind(session_id)
@@ -128,7 +96,7 @@ impl SessionRepository for MySqlGateway {
         sqlx::query(
             r#"
             DELETE FROM user_sessions 
-            WHERE id = ?
+            WHERE session_id = ?
             "#,
         )
         .bind(session_id)
@@ -263,49 +231,31 @@ impl CredentialsRepository for MySqlGateway {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::config::Expiry;
+    use crate::{domain::config::Expiry, helpers::mysql_configs};
 
     #[tokio::test]
     async fn test_mysql_session_repo() {
-        let db_config = DatabaseConfig {
-            host: "localhost".to_string(),
-            password: "my-secret-pw".to_string(),
-            db_name: "mysql".to_string(),
-            user_name: "root".to_string(),
-            port: "3306".to_string(),
-            namespace: None,
-        };
-
+        let db_config = mysql_configs();
         let mut repo = MySqlGateway::new(&db_config).await;
-        repo._create_session_table().await;
 
-        let session = &Session::new(&Expiry::Day(1), "user_identity@mail.com");
+        let session = &Session::new(&Expiry::Day(1), "848hfhs0-88ryh-eohrnf-odsiru");
         let query = repo.insert_session(session).await;
         assert!(query.is_ok());
 
-        let session_from_repo = repo.get_session_by_id(&session.id).await.unwrap();
+        let session_from_repo = repo.get_session_by_id(&session.session_id).await.unwrap();
         assert_eq!(session_from_repo.is_expired(), false);
-        assert_eq!(session_from_repo.id, session.id);
+        assert_eq!(session_from_repo.session_id, session.session_id);
         assert_eq!(session_from_repo.csrf_token, session.csrf_token);
 
-        repo.delete_session(&session.id).await.unwrap();
-        let session_from_repo = repo.get_session_by_id(&session.id).await;
+        repo.delete_session(&session.session_id).await.unwrap();
+        let session_from_repo = repo.get_session_by_id(&session.session_id).await;
         assert!(session_from_repo.is_err());
     }
 
     #[tokio::test]
     async fn test_mysql_credentials_repo() {
-        let db_config = DatabaseConfig {
-            host: "localhost".to_string(),
-            password: "my-secret-pw".to_string(),
-            db_name: "mysql".to_string(),
-            user_name: "root".to_string(),
-            port: "3306".to_string(),
-            namespace: None,
-        };
-
+        let db_config = mysql_configs();
         let repo = MySqlGateway::new(&db_config).await;
-        repo._create_credentials_table().await;
 
         let password = "test-pass-word";
         let email = "test@email.com";
