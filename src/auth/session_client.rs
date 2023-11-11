@@ -9,15 +9,17 @@ pub struct SessionClient<S: SessionRepository> {
     pub gateway: S,
 }
 
-impl<S: SessionRepository> SessionClient<S> {
-    #[cfg(feature = "mysql")]
+#[cfg(feature = "mysql")]
+impl SessionClient<gateway::mysql::MySqlGateway> {
     pub async fn new(db_configs: &DatabaseConfig) -> SessionClient<gateway::mysql::MySqlGateway> {
         let gateway = gateway::mysql::MySqlGateway::new(db_configs).await;
 
         SessionClient { gateway }
     }
+}
 
-    #[cfg(feature = "surreal")]
+#[cfg(feature = "surreal")]
+impl SessionClient<gateway::surreal::SurrealGateway> {
     pub async fn _new(
         db_configs: &DatabaseConfig,
     ) -> SessionClient<gateway::surreal::SurrealGateway> {
@@ -25,7 +27,9 @@ impl<S: SessionRepository> SessionClient<S> {
 
         SessionClient { gateway }
     }
+}
 
+impl<S: SessionRepository> SessionClient<S> {
     /// Issues a new session token to start the user session
     pub async fn start_session(&mut self, user_id: &str, duration: Expiry) -> Result<Session> {
         let session = Session::new(&duration, user_id);

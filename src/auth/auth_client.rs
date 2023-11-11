@@ -10,21 +10,25 @@ pub struct AuthClient<C: CredentialsRepository> {
     pub gateway: C,
 }
 
-impl<C: CredentialsRepository> AuthClient<C> {
-    #[cfg(feature = "mysql")]
+#[cfg(feature = "mysql")]
+impl AuthClient<gateway::mysql::MySqlGateway> {
     pub async fn new(db_configs: &DatabaseConfig) -> AuthClient<gateway::mysql::MySqlGateway> {
         let gateway = gateway::mysql::MySqlGateway::new(db_configs).await;
 
-        AuthClient { gateway }
+        Self { gateway }
     }
+}
 
-    #[cfg(feature = "surreal")]
+#[cfg(feature = "surreal")]
+impl AuthClient<gateway::surreal::SurrealGateway> {
     pub async fn _new(db_configs: &DatabaseConfig) -> AuthClient<gateway::surreal::SurrealGateway> {
         let gateway = gateway::surreal::SurrealGateway::new(db_configs).await;
 
-        AuthClient { gateway }
+        Self { gateway }
     }
+}
 
+impl<C: CredentialsRepository> AuthClient<C> {
     /// Register a new user and insert them into the database if user does not already exist
     pub async fn register(
         &mut self,
@@ -57,20 +61,16 @@ impl<C: CredentialsRepository> AuthClient<C> {
     }
 
     /// Matches credentials provided by the user with the what is in the database
-    pub async fn verify_credentials(&self, user_identity: &str, raw_password: &str) -> bool {
-        match self
+    pub async fn verify_credentials(&self, user_identity: &str, raw_password: &str) -> Result<()> {
+        let creds = self
             .gateway
             .find_credentials_by_user_identity(&user_identity)
-            .await
-        {
-            Ok(credentials) => {
-                if verify_password(raw_password, &credentials.hashed_password).is_ok() {
-                    true
-                } else {
-                    false
-                }
-            }
-            Err(_) => false,
+            .await?;
+
+        if verify_password(raw_password, &creds.hashed_password).is_ok() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Username or Password did not match"))
         }
     }
 

@@ -2,6 +2,7 @@
 
 mod domain;
 pub use domain::config;
+pub use domain::entity;
 
 mod application;
 pub use application::interface;
