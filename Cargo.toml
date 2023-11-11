@@ -11,7 +11,7 @@ keywords = ["auth", "web"]
 categories = ["authentication"]
 
 [features]
-default = ["mysql", "sessions", "surreal"]
+default = ["mysql", "sessions"]
 mysql = ["dep:sqlx"]
 surreal = ["dep:surrealdb"]
 sessions = ["dep:base64", "dep:rand"]
