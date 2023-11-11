@@ -28,9 +28,9 @@ impl FromRow<'_, MySqlRow> for Session {
 impl FromRow<'_, MySqlRow> for Credentials {
     fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
         Ok(Self {
-            id: row.try_get("id")?,
+            credentials_id: row.try_get("credentials_id")?,
             hashed_password: row.try_get("hashed_password")?,
-            user_identity: row.try_get("user_identity")?,
+            user_name: row.try_get("user_name")?,
         })
     }
 }
@@ -87,7 +87,7 @@ impl SessionRepository for MySqlGateway {
         .bind(session_id)
         .fetch_one(&self.pool)
         .await
-        .context("Failed to get session by id from MySql")?;
+        .context("Failed to get session by id ")?;
 
         Ok(session)
     }
@@ -102,7 +102,7 @@ impl SessionRepository for MySqlGateway {
         .bind(session_id)
         .execute(&self.pool)
         .await
-        .context("Failed to delete session from MySql")?;
+        .context("Failed to delete session ")?;
 
         Ok(())
     }
@@ -113,16 +113,16 @@ impl CredentialsRepository for MySqlGateway {
     async fn insert_credentials(&self, credentials: &Credentials) -> Result<()> {
         sqlx::query(
             r#"
-            INSERT INTO user_credentials (id, user_identity, hashed_password)
+            INSERT INTO user_credentials (credentials_id, user_name, hashed_password)
             VALUES (?, ?, ?);
             "#,
         )
-        .bind(&credentials.id)
-        .bind(&credentials.user_identity)
+        .bind(&credentials.credentials_id)
+        .bind(&credentials.user_name)
         .bind(&credentials.hashed_password)
         .execute(&self.pool)
         .await
-        .context("Failed to insert credentials into MySql")?;
+        .context("Failed to insert credentials")?;
 
         Ok(())
     }
@@ -130,84 +130,80 @@ impl CredentialsRepository for MySqlGateway {
     async fn find_credentials_by_id(&self, id: &str) -> Result<Credentials> {
         let credentials: Credentials = sqlx::query_as(
             r#"
-            SELECT id, user_identity, hashed_password
+            SELECT credentials_id, user_name, hashed_password
             FROM user_credentials
-            WHERE id = ?
+            WHERE credentials_id = ?
             "#,
         )
         .bind(id)
         .fetch_one(&self.pool)
         .await
-        .context("Failed to find credentials by id from MySql")?;
+        .context("Failed to find credentials by id")?;
 
         Ok(credentials)
     }
 
-    async fn find_credentials_by_user_identity(&self, user_identity: &str) -> Result<Credentials> {
+    async fn find_credentials_by_user_name(&self, user_name: &str) -> Result<Credentials> {
         let credentials: Credentials = sqlx::query_as(
             r#"
-            SELECT id, user_identity, hashed_password
+            SELECT credentials_id, user_name, hashed_password
             FROM user_credentials
-            WHERE user_identity = ?
+            WHERE user_name = ?
             "#,
         )
-        .bind(user_identity)
+        .bind(user_name)
         .fetch_one(&self.pool)
         .await
-        .context("Failed to find credentials by user identity from MySql")?;
+        .context("Failed to find credentials by user name")?;
 
         Ok(credentials)
     }
 
-    async fn update_user_identity(&self, user_identity: &str, new_identity: &str) -> Result<()> {
+    async fn update_user_name(&self, user_name: &str, new_identity: &str) -> Result<()> {
         sqlx::query(
             r#"
             UPDATE user_credentials
-            SET user_identity = ?
-            WHERE user_identity = ?
+            SET user_name = ?
+            WHERE user_name = ?
             "#,
         )
         .bind(new_identity)
-        .bind(user_identity)
+        .bind(user_name)
         .execute(&self.pool)
         .await
-        .context("Failed to update user identity in MySql")?;
+        .context("Failed to update user name")?;
 
         Ok(())
     }
 
-    async fn update_user_password(
-        &self,
-        user_identity: &str,
-        new_hashed_password: &str,
-    ) -> Result<()> {
+    async fn update_user_password(&self, user_name: &str, new_hashed_password: &str) -> Result<()> {
         sqlx::query(
             r#"
             UPDATE user_credentials
             SET hashed_password = ?
-            WHERE user_identity = ?
+            WHERE user_name = ?
             "#,
         )
         .bind(&new_hashed_password)
-        .bind(user_identity)
+        .bind(user_name)
         .execute(&self.pool)
         .await
-        .context("Failed to update user password in MySql")?;
+        .context("Failed to update user password")?;
 
         Ok(())
     }
 
-    async fn delete_credentials_by_user_identity(&self, user_identity: &str) -> Result<()> {
+    async fn delete_credentials_by_user_name(&self, user_name: &str) -> Result<()> {
         sqlx::query(
             r#"
             DELETE FROM user_credentials
-            WHERE user_identity = ?
+            WHERE user_name = ?
             "#,
         )
-        .bind(user_identity)
+        .bind(user_name)
         .execute(&self.pool)
         .await
-        .context("Failed to delete credentials by user identity from MySql")?;
+        .context("Failed to delete credentials by user name")?;
 
         Ok(())
     }
@@ -216,13 +212,13 @@ impl CredentialsRepository for MySqlGateway {
         sqlx::query(
             r#"
             DELETE FROM user_credentials
-            WHERE id = ?
+            WHERE credentials_id = ?
             "#,
         )
         .bind(id)
         .execute(&self.pool)
         .await
-        .context("Failed to delete credentials by id from MySql")?;
+        .context("Failed to delete credentials by id")?;
 
         Ok(())
     }
@@ -265,38 +261,45 @@ mod tests {
         repo.insert_credentials(&credentials).await.unwrap();
 
         // Test getting credentials
-        let creds = repo.find_credentials_by_user_identity(email).await.unwrap();
-        assert_eq!(creds.user_identity, email);
+        let creds = repo.find_credentials_by_user_name(email).await.unwrap();
+        assert_eq!(creds.user_name, email);
 
         // Test changing credentials
         let new_identity = "updatedidentity@gmail.com";
         let new_password = "the-updated-password";
-        repo.update_user_identity(&credentials.user_identity, new_identity)
+        repo.update_user_name(&credentials.user_name, new_identity)
             .await
             .unwrap();
         repo.update_user_password(&new_identity, new_password)
             .await
             .unwrap();
 
-        let creds = repo.find_credentials_by_id(&credentials.id).await.unwrap();
-        assert_eq!(creds.user_identity, new_identity);
-        assert_eq!(creds.hashed_password, new_password);
-
-        // Delete credentials by user identity
-        repo.delete_credentials_by_user_identity(&creds.user_identity)
+        let creds = repo
+            .find_credentials_by_id(&credentials.credentials_id)
             .await
             .unwrap();
-        let creds = repo.find_credentials_by_id(&credentials.id).await;
+        assert_eq!(creds.user_name, new_identity);
+        assert_eq!(creds.hashed_password, new_password);
+
+        // Delete credentials by user name
+        repo.delete_credentials_by_user_name(&creds.user_name)
+            .await
+            .unwrap();
+        let creds = repo
+            .find_credentials_by_id(&credentials.credentials_id)
+            .await;
         assert!(creds.is_err());
 
-        // Delete credentials by id
+        // Delete credentials by credentials_id
         let credentials = Credentials::new(email, password);
         repo.insert_credentials(&credentials).await.unwrap();
 
-        repo.delete_credentials_by_id(&credentials.id)
+        repo.delete_credentials_by_id(&credentials.credentials_id)
             .await
             .unwrap();
-        let creds = repo.find_credentials_by_id(&credentials.id).await;
+        let creds = repo
+            .find_credentials_by_id(&credentials.credentials_id)
+            .await;
         assert!(creds.is_err());
     }
 }

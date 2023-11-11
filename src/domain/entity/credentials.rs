@@ -4,16 +4,16 @@ pub type CredentialsId = String;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Credentials {
-    pub id: CredentialsId,
-    pub user_identity: String,
+    pub credentials_id: CredentialsId,
+    pub user_name: String,
     pub hashed_password: String,
 }
 
 impl Credentials {
-    pub fn new(user_identity: &str, hashed_password: &str) -> Self {
+    pub fn new(user_name: &str, hashed_password: &str) -> Self {
         Self {
-            id: uuid::Uuid::new_v4().to_string(),
-            user_identity: user_identity.to_string(),
+            credentials_id: uuid::Uuid::new_v4().to_string(),
+            user_name: user_name.to_string(),
             hashed_password: hashed_password.to_string(),
         }
     }

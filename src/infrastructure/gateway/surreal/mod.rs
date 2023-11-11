@@ -94,28 +94,26 @@ impl SessionRepository for SurrealGateway {
 
 #[async_trait::async_trait]
 impl CredentialsRepository for SurrealGateway {
-    async fn find_credentials_by_user_identity(&self, user_identity: &str) -> Result<Credentials> {
+    async fn find_credentials_by_user_name(&self, user_name: &str) -> Result<Credentials> {
         let sql = "
-        SELECT * FROM user_credentials WHERE data.user_identity = $user_identity
+        SELECT * FROM user_credentials WHERE data.user_name = $user_name
         ";
 
         let mut query_result = self
             .database
             .query(sql)
-            .bind(("user_identity", user_identity))
+            .bind(("user_name", user_name))
             .await
-            .context("Failed to get credentials by user identity in Surreal")?;
+            .context("Failed to get credentials by user name")?;
 
         let mut records = query_result
             .take::<Vec<SurrealRecord<Credentials>>>(0)
-            .context("Could not take from Surreal response")?;
+            .context("Could not take from response")?;
 
         if !records.is_empty() {
             Ok(records.remove(0).data)
         } else {
-            Err(anyhow::anyhow!(
-                "Failed to find credentials by user identity in Surreal"
-            ))
+            Err(anyhow::anyhow!("Failed to find credentials by user name"))
         }
     }
 
@@ -125,9 +123,7 @@ impl CredentialsRepository for SurrealGateway {
 
         match query_for_record {
             Some(record) => Ok(record.data),
-            None => Err(anyhow::anyhow!(
-                "Failed to find credentials by id in Surreal"
-            )),
+            None => Err(anyhow::anyhow!("Failed to find credentials by id")),
         }
     }
 
@@ -138,7 +134,10 @@ impl CredentialsRepository for SurrealGateway {
         };
 
         self.database
-            .create::<Option<SurrealRecord<Credentials>>>(("user_credentials", &credentials.id))
+            .create::<Option<SurrealRecord<Credentials>>>((
+                "user_credentials",
+                &credentials.credentials_id,
+            ))
             .content(&record)
             .await
             .context("Failed to insert credentials into Surreal")?;
@@ -146,11 +145,11 @@ impl CredentialsRepository for SurrealGateway {
         Ok(())
     }
 
-    async fn update_user_identity(&self, current_identity: &str, new_identity: &str) -> Result<()> {
+    async fn update_user_name(&self, current_identity: &str, new_identity: &str) -> Result<()> {
         let sql = "
             UPDATE user_credentials
-            SET data.user_identity = $new_identity
-            WHERE data.user_identity = $current_identity;
+            SET data.user_name = $new_identity
+            WHERE data.user_name = $current_identity;
         ";
 
         self.database
@@ -163,36 +162,32 @@ impl CredentialsRepository for SurrealGateway {
         Ok(())
     }
 
-    async fn update_user_password(
-        &self,
-        user_identity: &str,
-        new_hashed_password: &str,
-    ) -> Result<()> {
+    async fn update_user_password(&self, user_name: &str, new_hashed_password: &str) -> Result<()> {
         let sql = "
             UPDATE user_credentials
             SET data.hashed_password = $new_hashed_password
-            WHERE data.user_identity = $user_identity;
+            WHERE data.user_name = $user_name;
         ";
 
         self.database
             .query(sql)
             .bind(("new_hashed_password", new_hashed_password))
-            .bind(("user_identity", user_identity))
+            .bind(("user_name", user_name))
             .await
             .context("Failed to update password in Surreal")?;
 
         Ok(())
     }
 
-    async fn delete_credentials_by_user_identity(&self, user_identity: &str) -> Result<()> {
+    async fn delete_credentials_by_user_name(&self, user_name: &str) -> Result<()> {
         let sql = "
             DELETE FROM user_credentials
-            WHERE data.user_identity = $user_identity;
+            WHERE data.user_name = $user_name;
         ";
 
         self.database
             .query(sql)
-            .bind(("user_identity", user_identity))
+            .bind(("user_name", user_name))
             .await
             .context("Failed to delete credentials by user identity in Surreal")?;
 
@@ -220,7 +215,7 @@ mod tests {
         let db_config = surreal_configs();
         let repo = SurrealGateway::new(&db_config).await;
 
-        let session = Session::new(&Expiry::Day(1), "user_identity@mail.com");
+        let session = Session::new(&Expiry::Day(1), "user_name@mail.com");
         let query = repo.insert_session(&session).await;
         assert!(query.is_ok());
 
@@ -248,37 +243,42 @@ mod tests {
         repo.insert_credentials(&creds).await.unwrap();
 
         // Test getting creds
-        let user_cred = repo.find_credentials_by_user_identity(email).await.unwrap();
-        assert_eq!(user_cred.user_identity, email);
+        let user_cred = repo.find_credentials_by_user_name(email).await.unwrap();
+        assert_eq!(user_cred.user_name, email);
 
         // Test changing credentials
         let new_identity = "updatedidentity@gmail.com";
         let new_password = "the-updated-password";
-        repo.update_user_identity(&creds.user_identity, new_identity)
+        repo.update_user_name(&creds.user_name, new_identity)
             .await
             .unwrap();
         repo.update_user_password(&new_identity, new_password)
             .await
             .unwrap();
 
-        let creds = repo.find_credentials_by_id(&creds.id).await.unwrap();
-        assert_eq!(creds.user_identity, new_identity);
-
-        // Delete credentials
-        repo.delete_credentials_by_user_identity(&creds.user_identity)
+        let creds = repo
+            .find_credentials_by_id(&creds.credentials_id)
             .await
             .unwrap();
-        let creds = repo.find_credentials_by_id(&creds.id).await;
+        assert_eq!(creds.user_name, new_identity);
+
+        // Delete credentials
+        repo.delete_credentials_by_user_name(&creds.user_name)
+            .await
+            .unwrap();
+        let creds = repo.find_credentials_by_id(&creds.credentials_id).await;
         assert!(creds.is_err());
 
-        // Delete credentials by id
+        // Delete credentials by credentials_id
         let credentials = Credentials::new(email, password);
         repo.insert_credentials(&credentials).await.unwrap();
 
-        repo.delete_credentials_by_id(&credentials.id)
+        repo.delete_credentials_by_id(&credentials.credentials_id)
             .await
             .unwrap();
-        let creds = repo.find_credentials_by_id(&credentials.id).await;
+        let creds = repo
+            .find_credentials_by_id(&credentials.credentials_id)
+            .await;
         assert!(creds.is_err());
     }
 }

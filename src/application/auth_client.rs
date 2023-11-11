@@ -31,11 +31,7 @@ impl AuthClient<gateway::surreal::SurrealGateway> {
 impl<C: CredentialsRepository> AuthClient<C> {
     /// Register a new user and insert them into the database if user does not already exist
     pub async fn register(&self, user_name: &str, raw_password: &str) -> Result<CredentialsId> {
-        match self
-            .gateway
-            .find_credentials_by_user_identity(user_name)
-            .await
-        {
+        match self.gateway.find_credentials_by_user_name(user_name).await {
             Ok(_) => {
                 return Err(anyhow::anyhow!(
                     "Registration failed, credentials already exist"
@@ -51,7 +47,7 @@ impl<C: CredentialsRepository> AuthClient<C> {
                     .await
                     .context("Registration failed, repository error")?;
 
-                return Ok(credentials.id);
+                return Ok(credentials.credentials_id);
             }
         };
     }
@@ -60,7 +56,7 @@ impl<C: CredentialsRepository> AuthClient<C> {
     pub async fn verify_credentials(&self, user_name: &str, raw_password: &str) -> Result<()> {
         let creds = self
             .gateway
-            .find_credentials_by_user_identity(&user_name)
+            .find_credentials_by_user_name(&user_name)
             .await?;
 
         verify_password(raw_password, &creds.hashed_password)
@@ -68,9 +64,9 @@ impl<C: CredentialsRepository> AuthClient<C> {
     }
 
     /// Deletes credentials from table
-    pub async fn destroy_credentials(&mut self, user_identity: &str) -> Result<()> {
+    pub async fn destroy_credentials(&mut self, user_name: &str) -> Result<()> {
         self.gateway
-            .delete_credentials_by_user_identity(user_identity)
+            .delete_credentials_by_user_name(user_name)
             .await
     }
 }
