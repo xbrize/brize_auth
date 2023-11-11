@@ -57,7 +57,7 @@ impl MySqlGateway {}
 
 #[async_trait::async_trait]
 impl SessionRepository for MySqlGateway {
-    async fn insert_session(&mut self, session: &Session) -> Result<()> {
+    async fn insert_session(&self, session: &Session) -> Result<()> {
         sqlx::query(
             r#"
             INSERT INTO user_sessions (session_id, created_at, expires_at, user_id, csrf_token)
@@ -76,7 +76,7 @@ impl SessionRepository for MySqlGateway {
         Ok(())
     }
 
-    async fn get_session_by_id(&mut self, session_id: &SessionToken) -> Result<Session> {
+    async fn get_session_by_id(&self, session_id: &SessionToken) -> Result<Session> {
         let session: Session = sqlx::query_as(
             r#"
             SELECT session_id, created_at, expires_at, user_id, csrf_token
@@ -92,7 +92,7 @@ impl SessionRepository for MySqlGateway {
         Ok(session)
     }
 
-    async fn delete_session(&mut self, session_id: &SessionToken) -> Result<()> {
+    async fn delete_session(&self, session_id: &SessionToken) -> Result<()> {
         sqlx::query(
             r#"
             DELETE FROM user_sessions 
@@ -236,7 +236,7 @@ mod tests {
     #[tokio::test]
     async fn test_mysql_session_repo() {
         let db_config = mysql_configs();
-        let mut repo = MySqlGateway::new(&db_config).await;
+        let repo = MySqlGateway::new(&db_config).await;
 
         let session = &Session::new(&Expiry::Day(1), "848hfhs0-88ryh-eohrnf-odsiru");
         let query = repo.insert_session(session).await;

@@ -54,7 +54,7 @@ impl SurrealGateway {
 
 #[async_trait::async_trait]
 impl SessionRepository for SurrealGateway {
-    async fn get_session_by_id(&mut self, session_id: &SessionToken) -> Result<Session> {
+    async fn get_session_by_id(&self, session_id: &SessionToken) -> Result<Session> {
         let query_for_record: Option<SurrealRecord<Session>> = self
             .database
             .select(("user_sessions", session_id))
@@ -67,7 +67,7 @@ impl SessionRepository for SurrealGateway {
         }
     }
 
-    async fn insert_session(&mut self, session: &Session) -> Result<()> {
+    async fn insert_session(&self, session: &Session) -> Result<()> {
         let record = SurrealRecord {
             id: None,
             data: session,
@@ -82,7 +82,7 @@ impl SessionRepository for SurrealGateway {
         Ok(())
     }
 
-    async fn delete_session(&mut self, session_id: &SessionToken) -> Result<()> {
+    async fn delete_session(&self, session_id: &SessionToken) -> Result<()> {
         self.database
             .delete::<Option<SurrealRecord<Session>>>(("user_sessions", session_id))
             .await
@@ -218,7 +218,7 @@ mod tests {
     #[tokio::test]
     async fn test_surreal_session_repo() {
         let db_config = surreal_configs();
-        let mut repo = SurrealGateway::new(&db_config).await;
+        let repo = SurrealGateway::new(&db_config).await;
 
         let session = Session::new(&Expiry::Day(1), "user_identity@mail.com");
         let query = repo.insert_session(&session).await;

@@ -6,9 +6,6 @@ pub type CredentialsId = String;
 pub struct Credentials {
     pub id: CredentialsId,
     pub user_identity: String,
-
-    // ! This will fail cred tests
-    #[serde(skip_deserializing)]
     pub hashed_password: String,
 }
 

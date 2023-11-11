@@ -63,11 +63,8 @@ impl<C: CredentialsRepository> AuthClient<C> {
             .find_credentials_by_user_identity(&user_name)
             .await?;
 
-        if verify_password(raw_password, &creds.hashed_password).is_ok() {
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!("Username or Password did not match"))
-        }
+        verify_password(raw_password, &creds.hashed_password)
+            .context("Username or Password did not match")
     }
 
     /// Deletes credentials from table
@@ -81,12 +78,28 @@ impl<C: CredentialsRepository> AuthClient<C> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::helpers::mysql_configs;
+    use crate::helpers::{mysql_configs, surreal_configs};
 
     #[tokio::test]
     async fn test_mysql_auth() {
         let db_configs = mysql_configs();
         let auth = AuthClient::new(&db_configs).await;
+
+        // create random user creds
+        let random_str = &uuid::Uuid::new_v4().to_string();
+        let email = &random_str[..10];
+        let password = "secret-test-password";
+        let creds_id = auth.register(email, password).await.unwrap();
+        assert_eq!(creds_id.len(), 36);
+
+        // login attempt
+        auth.verify_credentials(email, password).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_surreal_auth() {
+        let db_configs = surreal_configs();
+        let auth = AuthClient::_new(&db_configs).await;
 
         // create random user creds
         let random_str = &uuid::Uuid::new_v4().to_string();
