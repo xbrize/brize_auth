@@ -1,6 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::domain::config::Expiry;
+use serde::{Deserialize, Serialize};
 
 pub type SessionToken = String;
 
