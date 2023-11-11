@@ -7,9 +7,12 @@ use surrealdb::{
     Surreal,
 };
 
-use crate::application::interface::{CredentialsRepository, SessionRepository};
-use crate::domain::config::DatabaseConfig;
-use crate::domain::entity::{Credentials, Session, SessionToken};
+use crate::domain::entity::Credentials;
+use crate::domain::{config::DatabaseConfig, entity::Session};
+use crate::{
+    application::interface::{CredentialsRepository, SessionRepository},
+    domain::entity::SessionToken,
+};
 
 #[derive(Serialize, Deserialize)]
 pub struct SurrealRecord<T> {

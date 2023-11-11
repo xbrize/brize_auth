@@ -1,5 +1,6 @@
 use crate::config::Expiry;
-use crate::domain::entity::{Session, SessionToken};
+use crate::domain::entity::Session;
+
 use crate::interface::SessionRepository;
 use crate::{config::DatabaseConfig, infrastructure::gateway};
 use anyhow::Result;
@@ -24,18 +25,16 @@ impl<S: SessionRepository> SessionClient<S> {
 
         SessionClient { gateway }
     }
-}
 
-impl<C: SessionRepository> SessionClient<C> {
     /// Issues a new session token to start the user session
-    pub async fn start_session(&mut self, user_id: &str, duration: Expiry) -> Result<SessionToken> {
+    pub async fn start_session(&mut self, user_id: &str, duration: Expiry) -> Result<Session> {
         let session = Session::new(&duration, user_id);
         self.gateway.insert_session(&session).await?;
-        Ok(session.id)
+        Ok(session)
     }
 
     /// Validates the session token
-    pub async fn validate_session(&mut self, session_token: &str) -> Result<String> {
+    pub async fn validate_session(&mut self, session_token: &str) -> Result<Session> {
         let attempt_to_get_session = self
             .gateway
             .get_session_by_id(&session_token.to_string())
@@ -49,10 +48,24 @@ impl<C: SessionRepository> SessionClient<C> {
                         .await?;
                     Err(anyhow::anyhow!("Session expired"))
                 } else {
-                    Ok(session.user_identity)
+                    Ok(session)
                 }
             }
             Err(e) => Err(anyhow::anyhow!("Session validation error: {}", e)),
         }
+    }
+
+    /// Get the session details for a token
+    pub async fn get_session(&mut self, session_token: &str) -> Result<Session> {
+        self.gateway
+            .get_session_by_id(&session_token.to_string())
+            .await
+    }
+
+    /// Deletes the session from the table
+    pub async fn destory_session(&mut self, session_token: &str) -> Result<()> {
+        self.gateway
+            .delete_session(&session_token.to_string())
+            .await
     }
 }

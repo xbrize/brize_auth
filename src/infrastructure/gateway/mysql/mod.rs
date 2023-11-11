@@ -8,7 +8,8 @@ use crate::{
     application::interface::{CredentialsRepository, SessionRepository},
     domain::{
         config::DatabaseConfig,
-        entity::{Credentials, Session, SessionToken},
+        entity::Credentials,
+        entity::{Session, SessionToken},
     },
 };
 

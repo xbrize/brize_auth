@@ -1,5 +1,4 @@
-mod auth_client;
-pub use auth_client::AuthClient;
+pub mod auth_client;
 
-mod session_client;
-pub use session_client::SessionClient;
+#[cfg(feature = "sessions")]
+pub mod session_client;

@@ -24,9 +24,7 @@ impl<C: CredentialsRepository> AuthClient<C> {
 
         AuthClient { gateway }
     }
-}
 
-impl<C: CredentialsRepository> AuthClient<C> {
     /// Register a new user and insert them into the database if user does not already exist
     pub async fn register(
         &mut self,
@@ -74,5 +72,12 @@ impl<C: CredentialsRepository> AuthClient<C> {
             }
             Err(_) => false,
         }
+    }
+
+    /// Deletes credentials from table
+    pub async fn destroy_credentials(&mut self, user_identity: &str) -> Result<()> {
+        self.gateway
+            .delete_credentials_by_user_identity(user_identity)
+            .await
     }
 }
