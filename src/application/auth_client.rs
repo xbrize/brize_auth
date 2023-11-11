@@ -21,7 +21,9 @@ impl AuthClient<gateway::mysql::MySqlGateway> {
 
 #[cfg(feature = "surreal")]
 impl AuthClient<gateway::surreal::SurrealGateway> {
-    pub async fn _new(db_configs: &DatabaseConfig) -> AuthClient<gateway::surreal::SurrealGateway> {
+    pub async fn new_surreal_client(
+        db_configs: &DatabaseConfig,
+    ) -> AuthClient<gateway::surreal::SurrealGateway> {
         let gateway = gateway::surreal::SurrealGateway::new(db_configs).await;
 
         Self { gateway }
@@ -74,7 +76,9 @@ impl<C: CredentialsRepository> AuthClient<C> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::helpers::{mysql_configs, surreal_configs};
+    use crate::helpers::mysql_configs;
+    #[cfg(feature = "surreal")]
+    use crate::helpers::surreal_configs;
 
     #[tokio::test]
     async fn test_mysql_auth() {
@@ -92,10 +96,11 @@ mod tests {
         auth.verify_credentials(email, password).await.unwrap();
     }
 
+    #[cfg(feature = "surreal")]
     #[tokio::test]
     async fn test_surreal_auth() {
         let db_configs = surreal_configs();
-        let auth = AuthClient::_new(&db_configs).await;
+        let auth = AuthClient::new_surreal_client(&db_configs).await;
 
         // create random user creds
         let random_str = &uuid::Uuid::new_v4().to_string();
