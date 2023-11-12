@@ -39,23 +39,18 @@ impl<S: SessionRepository> SessionClient<S> {
 
     /// Validates the session token
     pub async fn validate_session(&self, session_token: &str) -> Result<Session> {
-        let attempt_to_get_session = self
+        let session = self
             .gateway
             .get_session_by_id(&session_token.to_string())
-            .await;
+            .await?;
 
-        match attempt_to_get_session {
-            Ok(session) => {
-                if session.is_expired() {
-                    self.gateway
-                        .delete_session(&session_token.to_string())
-                        .await?;
-                    Err(anyhow::anyhow!("Session expired"))
-                } else {
-                    Ok(session)
-                }
-            }
-            Err(e) => Err(anyhow::anyhow!("Session validation error: {}", e)),
+        if session.is_expired() {
+            self.gateway
+                .delete_session(&session_token.to_string())
+                .await?;
+            Err(anyhow::anyhow!("Session expired"))
+        } else {
+            Ok(session)
         }
     }
 
@@ -115,7 +110,7 @@ mod tests {
     #[tokio::test]
     async fn test_surreal_session() {
         let db_configs = surreal_configs();
-        let sesh = SessionClient::_new(&db_configs).await;
+        let sesh = SessionClient::new(&db_configs).await;
         let user_id = &uuid::Uuid::new_v4().to_string();
 
         // Test healthy session

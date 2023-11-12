@@ -1,10 +1,8 @@
-use serde::{Deserialize, Serialize};
-
 use crate::domain::config::Expiry;
-
 use base64::{engine::general_purpose, Engine};
 use rand::distributions::Alphanumeric;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 
 pub type SessionToken = String;
 pub type CsrfToken = String;
@@ -31,6 +29,10 @@ impl Session {
 
     pub fn is_expired(&self) -> bool {
         self.expires_at < Expiry::now()
+    }
+
+    pub fn match_csrf_token(&self, csrf_token: &str) -> bool {
+        self.csrf_token == csrf_token
     }
 }
 
