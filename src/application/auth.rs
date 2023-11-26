@@ -12,7 +12,9 @@ pub struct AuthClient<C: CredentialsRepository> {
 
 #[cfg(feature = "mysql")]
 impl AuthClient<gateway::mysql::MySqlGateway> {
-    pub async fn new(db_configs: &DatabaseConfig) -> AuthClient<gateway::mysql::MySqlGateway> {
+    pub async fn new_mysql_client(
+        db_configs: &DatabaseConfig,
+    ) -> AuthClient<gateway::mysql::MySqlGateway> {
         let gateway = gateway::mysql::MySqlGateway::new(db_configs).await;
 
         Self { gateway }
@@ -99,10 +101,11 @@ mod tests {
     #[cfg(feature = "surreal")]
     use crate::helpers::surreal_configs;
 
+    #[cfg(feature = "mysql")]
     #[tokio::test]
     async fn test_mysql_auth() {
         let db_configs = mysql_configs();
-        let auth = AuthClient::new(&db_configs).await;
+        let auth = AuthClient::new_mysql_client(&db_configs).await;
 
         // create random user creds
         let random_str = &uuid::Uuid::new_v4().to_string();

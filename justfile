@@ -25,7 +25,11 @@ test-all:
     ./scripts/stop_db.sh
 
 test-mysql:
-    -scripts/tests/gateways/mysql_gateway.test.sh
+    ./scripts/init_db.sh
+    cargo test mysql
+    ./scripts/stop_db.sh
 
 test-surreal:
-    -scripts/tests/gateways/surreal_gateway.test.sh
+    ./scripts/init_db.sh
+    cargo test surreal
+    ./scripts/stop_db.sh

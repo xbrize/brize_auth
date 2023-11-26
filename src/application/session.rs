@@ -11,7 +11,9 @@ pub struct SessionClient<S: SessionRepository> {
 
 #[cfg(feature = "mysql")]
 impl SessionClient<gateway::mysql::MySqlGateway> {
-    pub async fn new(db_configs: &DatabaseConfig) -> SessionClient<gateway::mysql::MySqlGateway> {
+    pub async fn new_mysql_client(
+        db_configs: &DatabaseConfig,
+    ) -> SessionClient<gateway::mysql::MySqlGateway> {
         let gateway = gateway::mysql::MySqlGateway::new(db_configs).await;
 
         SessionClient { gateway }
@@ -20,7 +22,7 @@ impl SessionClient<gateway::mysql::MySqlGateway> {
 
 #[cfg(feature = "surreal")]
 impl SessionClient<gateway::surreal::SurrealGateway> {
-    pub async fn _new(
+    pub async fn new_surreal_client(
         db_configs: &DatabaseConfig,
     ) -> SessionClient<gateway::surreal::SurrealGateway> {
         let gateway = gateway::surreal::SurrealGateway::new(db_configs).await;
@@ -62,7 +64,7 @@ impl<S: SessionRepository> SessionClient<S> {
     }
 
     /// Deletes the session from the table
-    pub async fn destory_session(&mut self, session_token: &str) -> Result<()> {
+    pub async fn destroy_session(&mut self, session_token: &str) -> Result<()> {
         self.gateway
             .delete_session(&session_token.to_string())
             .await
@@ -79,7 +81,7 @@ mod tests {
     #[tokio::test]
     async fn test_mysql_session() {
         let db_configs = mysql_configs();
-        let sesh = SessionClient::new(&db_configs).await;
+        let sesh = SessionClient::new_mysql_client(&db_configs).await;
         let user_id = &uuid::Uuid::new_v4().to_string();
 
         // Test healthy session
@@ -110,7 +112,7 @@ mod tests {
     #[tokio::test]
     async fn test_surreal_session() {
         let db_configs = surreal_configs();
-        let sesh = SessionClient::new(&db_configs).await;
+        let sesh = SessionClient::new_surreal_client(&db_configs).await;
         let user_id = &uuid::Uuid::new_v4().to_string();
 
         // Test healthy session
