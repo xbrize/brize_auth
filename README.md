@@ -4,7 +4,7 @@ A tiny async authentication library.
 
 ## Summary
 
-A tool for simplifying authentication for RESTful ecosystems. Purposefully built to be agnostic of your specific business/schema logic for managing users. Primarily controls the user **credentials** and optionally managing **sessions**. Built asynchronously with the Tokio runtime, and supports MySql, SurrealDB, and Redis.
+A tool for simplifying authentication in the Rust ecosystems. Purposefully built to be agnostic of your specific business/schema logic for managing users. Primarily controls the user **credentials** and optionally managing **sessions**. Built asynchronously with the Tokio runtime, and supports MySql and SurrealDB.
 
 ## Credentials
 
@@ -12,7 +12,7 @@ Brize auth **credentials** has 3 fields, an **id** for linking to your specific 
 
 ## Sessions
 
-The sessions are optional, in case you want to use some other session solution. If you do enable **sessions**, Brize auth offers classic table sessions, which have an **id** field as the token, **created_at** and **expired_at** for managing the expiration. The sessions will be stored in a **user_sessions** table on your database. Brize auth also offers **JWT** session management.
+The sessions are optional, in case you want to use some other session solution. If you do enable **sessions**, Brize auth offers classic table sessions, which have an **id** field as the token, **created_at** and **expired_at** for managing the expiration. The sessions will be stored in a **user_sessions** table on your database. A CSRF token is also available to use as **csrf_token** for form validation.
 
 ## Setup
 
@@ -34,11 +34,11 @@ CREATE TABLE user_credentials (
 
 -- Sessions table
 CREATE TABLE user_sessions (
-    id CHAR(36) PRIMARY KEY,
+    session_id CHAR(36) PRIMARY KEY,
     created_at BIGINT UNSIGNED NOT NULL,
     expires_at BIGINT UNSIGNED NOT NULL,
-    user_identity VARCHAR(255) NOT NULL,
-    csrf_token CHAR(36) NOT NULL
+    user_id VARCHAR(255) NOT NULL,
+    csrf_token CHAR(44) NOT NULL
 );
 ```
 
@@ -49,59 +49,60 @@ CREATE TABLE user_sessions (
 ```rust
 use anyhow::{Context, Result};
 use brize_auth::{
-    auth::{Auth, AuthBuilder},
-    config::{DatabaseConfig, Expiry, SessionType},
+    config::DatabaseConfig,
     mysql::MySqlGateway,
+    AuthClient,
+    SessionClient
 };
 
 #[tokio::main]
 fn main {
     // Set your database params
-      let db_config = DatabaseConfig {
-        host: "localhost".to_string(),
-        db_name: "mysql".to_string(),
-        user_name: "root".to_string(),
-        password: "my-secret-pw".to_string(),
-        port: "3306".to_string(),
+    let db_config = DatabaseConfig {
+        password: env::var("DB_PASSWORD").expect("DB_PASSWORD not found"),
+        user_name: env::var("DB_USER").expect("DB_USER not found"),
+        host: env::var("DB_HOST").expect("DB_HOST not found"),
+        port: env::var("DB_PORT").expect("DB_PORT not found"),
+        db_name: env::var("DB_NAME").expect("DB_NAME not found"),
         namespace: None,
-    };
+    }
 
-    // Start your auth config
-    let auth: Auth<MySqlGateway, MySqlGateway> = AuthBuilder::new()
-        .set_credentials_db_config(&db_config)
-        .set_sessions_db_config(&db_config)
-        .set_session_type(SessionType::Session(Expiry::Month(1)))
-        .build()
-        .await
-        .context("Failed to build auth")?;
+    // Start auth client
+    let auth: AuthClient<MySqlGateway> = AuthClient::new_mysql_client(&db_config).await;
 
     // Get user credentials from a request
-    let user_identity = "test@gmail.com";
+    let user_name = "test@gmail.com";
     let raw_password = "plokij1234!";
 
     // Create a new set of credentials..
     // .. returns the id of the credentials row, use this as some kind of reference key on YOUR user table
-    let credentials_id: String = auth.register(user_identity, raw_password).await?;
+    let credentials_id: String = auth.register(user_identity, raw_password).await.unwrap();
 
-    // Log user in and get a session token back
-    let session_token: String = auth.login(user_identity, raw_password).await?;
+    // Verify user credentials
+    let is_valid_user = auth.verify_credentials(user_name, raw_password).await.unwrap();
 
-    // Validate token later for user, this returns the user_identity
-    let validation: String = auth.validate_session(session_token).await?;
+    // Start session client
+    let session_client: SessionClient<MySqlGateway> = SessionClient::new_mysql_client(&db_config).await;
 
-    // Logout user and delete the session
-    let logout_status = Result<()> = auth.logout(session_token).await;
+    // Begin user session and configure expiration
+    let session: Session = session_client.start_session(user_id, Expiry::Month(1)).await.unwrap();
+
+    // Match csrf token
+    let csrf_from_form = "saslfj00324-2lkjsdf-sdfksfkajlasjfngj"
+    let is_valid_csrf: bool = session.match_csrf_toke(csrf_from_form);
+
+    // End session for user
+    session_client.destroy_session(&session.session_id).await.unwrap();
+
 }
 ```
 
-See the **src/examples directory** for more information.
-
 ## Config
 
-The preferred database and session type can be configured to your use case.
+The preferred database and session expirations can be configured
 
 ```rust
-use brize_auth::{Auth, AuthConfig, DatabaseConfig, Expiry, GatewayType, SessionType};
+use brize_auth::{DatabaseConfig, Expiry};
 
 pub struct DatabaseConfig {
     pub db_name: String, // Name of database
@@ -112,12 +113,6 @@ pub struct DatabaseConfig {
     pub namespace: Option<String> // Optional namespace in db
 }
 
-enum SessionType {
-    JWT(Expiry), // JWT session management
-    Session(Expiry), // Classic table sessions management
-    None, // Disable sessions
-}
-
 enum Expiry {
     Second(u64), // Epoch seconds
     Day(u64), // Days in EPOCH
@@ -125,47 +120,12 @@ enum Expiry {
     Month(u64), // Months in EPOCH
     Year(u64), // Years in EPOCH
 }
-
-let auth: Auth<C, S> = AuthBuilder::new()
-        // Set configs for connecting to the database that will hold your credentials table
-        .set_credentials_db_config(&db_config)
-        // Set configs for connecting to the database that will hold your sessions table
-        .set_sessions_db_config(&db_config)
-        // Set your session type, Session, JWT, or None to disable and the duration
-        .set_session_type(SessionType::Session(Expiry::Month(1)))
-        // Buld your Auth object
-        .build()
 ```
 
 ## Supported Databases
 
 - MySql (credentials + sessions)
 - SurrealDB (credentials + sessions)
-- Redis (sessions only)
-
-## Testing
-
-### Setup
-
-Install docker and run make sure the daemon is running
-
-- [Link to docker](https://docs.docker.com/engine/install/)
-
-Fork this repo
-
-```cli
-gh repo fork xbrize/brize_auth
-```
-
-### Running Tests
-
-**All test scripts are in `./scripts` but feel free to make your own. You will need to chmod +x to the script files.**
-
-After giving permission to execute, simply run them. Each is designed to spin up docker containers that are hosting generic databases. These are then used to run the tests against.
-
-```bash
-scripts/tests/<desired_script>.sh
-```
 
 ## Roadmap
 
@@ -206,9 +166,7 @@ scripts/tests/<desired_script>.sh
 
 ### Beta features
 
+- [x] Add feature splitting
+- [x] add a port to config
 - [ ] Configure custom table names for credentials and sessions
-- [ ] Configure custom claims for JWT
-- [ ] Add refresh config for Session and JWT
-- [ ] Add OAuth
-- [ ] Add feature splitting
-- [ ] add a port to config
+- [ ] Add refresh config for Session and Csrf tokens
