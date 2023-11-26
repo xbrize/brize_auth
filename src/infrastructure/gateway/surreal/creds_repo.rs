@@ -55,7 +55,7 @@ impl CredentialsRepository for SurrealGateway {
         Ok(())
     }
 
-    async fn update_user_name(&self, current_identity: &str, new_identity: &str) -> Result<()> {
+    async fn update_user_name(&self, user_name: &str, new_user_name: &str) -> Result<()> {
         let sql = "
             UPDATE user_credentials
             SET data.user_name = $new_identity
@@ -64,24 +64,24 @@ impl CredentialsRepository for SurrealGateway {
 
         self.database
             .query(sql)
-            .bind(("new_identity", new_identity))
-            .bind(("current_identity", current_identity))
+            .bind(("new_identity", new_user_name))
+            .bind(("current_identity", user_name))
             .await
             .context("Failed to update user identity in Surreal")?;
 
         Ok(())
     }
 
-    async fn update_user_password(&self, user_name: &str, new_hashed_password: &str) -> Result<()> {
+    async fn update_user_password(&self, user_name: &str, new_password: &str) -> Result<()> {
         let sql = "
             UPDATE user_credentials
-            SET data.hashed_password = $new_hashed_password
+            SET data.hashed_password = $new_password
             WHERE data.user_name = $user_name;
         ";
 
         self.database
             .query(sql)
-            .bind(("new_hashed_password", new_hashed_password))
+            .bind(("new_password", new_password))
             .bind(("user_name", user_name))
             .await
             .context("Failed to update password in Surreal")?;

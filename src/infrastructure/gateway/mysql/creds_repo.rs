@@ -64,7 +64,7 @@ impl CredentialsRepository for MySqlGateway {
         Ok(credentials)
     }
 
-    async fn update_user_name(&self, user_name: &str, new_identity: &str) -> Result<()> {
+    async fn update_user_name(&self, user_name: &str, new_user_name: &str) -> Result<()> {
         sqlx::query(
             r#"
             UPDATE user_credentials
@@ -72,7 +72,7 @@ impl CredentialsRepository for MySqlGateway {
             WHERE user_name = ?
             "#,
         )
-        .bind(new_identity)
+        .bind(new_user_name)
         .bind(user_name)
         .execute(&self.pool)
         .await
@@ -81,7 +81,7 @@ impl CredentialsRepository for MySqlGateway {
         Ok(())
     }
 
-    async fn update_user_password(&self, user_name: &str, new_hashed_password: &str) -> Result<()> {
+    async fn update_user_password(&self, user_name: &str, new_password: &str) -> Result<()> {
         sqlx::query(
             r#"
             UPDATE user_credentials
@@ -89,7 +89,7 @@ impl CredentialsRepository for MySqlGateway {
             WHERE user_name = ?
             "#,
         )
-        .bind(&new_hashed_password)
+        .bind(&new_password)
         .bind(user_name)
         .execute(&self.pool)
         .await

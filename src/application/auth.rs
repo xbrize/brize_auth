@@ -66,9 +66,28 @@ impl<C: CredentialsRepository> AuthClient<C> {
     }
 
     /// Deletes credentials from table
-    pub async fn destroy_credentials(&mut self, user_name: &str) -> Result<()> {
+    pub async fn destroy_credentials(&self, user_name: &str) -> Result<()> {
         self.gateway
             .delete_credentials_by_user_name(user_name)
+            .await
+    }
+
+    /// Update user name
+    pub async fn update_user_name(
+        &self,
+        current_user_name: &str,
+        new_user_name: &str,
+    ) -> Result<()> {
+        self.gateway
+            .update_user_name(current_user_name, new_user_name)
+            .await
+    }
+
+    /// Update user password
+    pub async fn update_password(&self, user_name: &str, new_raw_password: &str) -> Result<()> {
+        let new_hashed_password = hash_raw_password(new_raw_password);
+        self.gateway
+            .update_user_password(user_name, new_hashed_password.as_str())
             .await
     }
 }

@@ -9,7 +9,7 @@ pub trait CredentialsRepository: Send + Sync {
 
     async fn insert_credentials(&self, credentials: &Credentials) -> Result<()>;
 
-    async fn update_user_name(&self, current_identity: &str, new_identity: &str) -> Result<()>;
+    async fn update_user_name(&self, user_name: &str, new_user_name: &str) -> Result<()>;
 
     async fn update_user_password(&self, user_name: &str, new_password: &str) -> Result<()>;
 
