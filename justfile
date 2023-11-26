@@ -1,11 +1,35 @@
-test-redis:
-    -scripts/tests/gateways/redis_gateway.test.sh
+publish-changelog version:
+    git cliff -u --tag {{version}} --prepend CHANGELOG.md
+
+migrate-add file_name:
+    @source .env \
+    && sqlx migrate add --source database/migrations {{file_name}}
+
+# Tests
+test-domain:
+    cargo test domain
+
+test-application:
+    ./scripts/init_db.sh
+    -cargo test application
+    ./scripts/stop_db.sh
+
+test-infra:
+    ./scripts/init_db.sh
+    -cargo test infrastructure
+    ./scripts/stop_db.sh
+
+test-all:
+    ./scripts/init_db.sh
+    -cargo test
+    ./scripts/stop_db.sh
 
 test-mysql:
-    -scripts/tests/gateways/mysql_gateway.test.sh
+    ./scripts/init_db.sh
+    cargo test mysql
+    ./scripts/stop_db.sh
 
 test-surreal:
-    -scripts/tests/gateways/surreal_gateway.test.sh
-
-publish-changelog:
-    git cliff bd18f09.. --tag 0.8.0 --prepend CHANGELOG.md    
+    ./scripts/init_db.sh
+    cargo test surreal
+    ./scripts/stop_db.sh

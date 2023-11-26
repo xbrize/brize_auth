@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0] - 2023-11-26
+
+### Features
+
+- Split session as a feature, impl csrf for sessions
+- Decouple auth and session
+
+### Refactor
+
+- Clean up feature splits, add testing and testing infra
+- Change credential schema from id -> credentials_id and user_identity -> user_name
+- Split out session feature from gateways
+- Simplify lib exports
+- Seperate function names for clients
+
+### Testing
+
+- Add tests to auth_client and session_client
+
+### Add
+
+- Match_csrf_token method to Session
+
+### Break
+
+- Rip out everything
+
+### Wip
+
+- Add csrf_token to sessions schema
+- Lib structure
+
 ## [0.9.0] - 2023-11-07
 
 ### Bug Fixes

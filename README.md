@@ -19,7 +19,7 @@ The sessions are optional, in case you want to use some other session solution. 
 First install the crate
 
 ```bash
-cargo add brize_auth --features "mysql"
+cargo add brize_auth --features "mysql,sessions"
 ```
 
 Next, set up the database tables with this schema, if using a SQL database
@@ -27,8 +27,8 @@ Next, set up the database tables with this schema, if using a SQL database
 ```sql
 -- Credentials table
 CREATE TABLE user_credentials (
-    id CHAR(36) PRIMARY KEY,
-    user_identity VARCHAR(255) NOT NULL,
+    credentials_id CHAR(36) PRIMARY KEY,
+    user_name VARCHAR(255) NOT NULL,
     hashed_password VARCHAR(255) NOT NULL
 );
 
@@ -37,7 +37,8 @@ CREATE TABLE user_sessions (
     id CHAR(36) PRIMARY KEY,
     created_at BIGINT UNSIGNED NOT NULL,
     expires_at BIGINT UNSIGNED NOT NULL,
-    user_identity VARCHAR(255) NOT NULL
+    user_identity VARCHAR(255) NOT NULL,
+    csrf_token CHAR(36) NOT NULL
 );
 ```
 
