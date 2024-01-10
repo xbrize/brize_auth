@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.1] - 2024-01-10
+
+### Features
+
+- Add clone trait to Session
+
+### Miscellaneous Tasks
+
+- Update readme
+- Update app version
+
 ## [0.10.0] - 2023-11-26
 
 ### Features

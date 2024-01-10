@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub type SessionToken = String;
 pub type CsrfToken = String;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Session {
     pub session_id: SessionToken,
     pub csrf_token: CsrfToken,
