@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.11.1] - 2024-02-06
+
+### Bug Fixes
+
+- Pass url string to sql clients
+
+### Features
+
+- Add clone trait to Session
+- Make the port optional for configs
+
+### Miscellaneous Tasks
+
+- Update readme
+- Update app version
+- Update changelog
+
 ## [0.11.0] - 2024-02-06
 
 ### Features
