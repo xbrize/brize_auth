@@ -62,7 +62,7 @@ fn main {
         password: env::var("DB_PASSWORD").expect("DB_PASSWORD not found"),
         user_name: env::var("DB_USER").expect("DB_USER not found"),
         host: env::var("DB_HOST").expect("DB_HOST not found"),
-        port: env::var("DB_PORT").expect("DB_PORT not found"),
+        port: env::var("DB_PORT").ok(),
         db_name: env::var("DB_NAME").expect("DB_NAME not found"),
         namespace: None,
     }
@@ -109,7 +109,7 @@ pub struct DatabaseConfig {
     pub password: String, // Password for user
     pub user_name: String, // Name of user
     pub host: String, // Host IP
-    pub port: String, // Port for host
+    pub port: Option<String>, // Port for host
     pub namespace: Option<String> // Optional namespace in db
 }
 

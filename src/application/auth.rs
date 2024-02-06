@@ -1,3 +1,4 @@
+use crate::config::mysql_connection_string;
 use crate::domain::entity::{Credentials, CredentialsId};
 use crate::{
     application::interface::CredentialsRepository,
@@ -15,7 +16,8 @@ impl AuthClient<gateway::mysql::MySqlGateway> {
     pub async fn new_mysql_client(
         db_configs: &DatabaseConfig,
     ) -> AuthClient<gateway::mysql::MySqlGateway> {
-        let gateway = gateway::mysql::MySqlGateway::new(db_configs).await;
+        let url = mysql_connection_string(db_configs);
+        let gateway = gateway::mysql::MySqlGateway::new(&url).await;
 
         Self { gateway }
     }

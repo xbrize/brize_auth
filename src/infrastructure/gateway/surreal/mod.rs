@@ -27,7 +27,15 @@ pub struct SurrealGateway {
 
 impl SurrealGateway {
     pub async fn new(config: &DatabaseConfig) -> Self {
-        let address = format!("{}:{}", config.host, config.port);
+        let address = match &config.port {
+            Some(port) => {
+                format!("{}:{}", config.host, port)
+            }
+            None => {
+                format!("{}", config.host)
+            }
+        };
+
         let db = Surreal::new::<Ws>(address.as_str())
             .await
             .expect("Failed connection with SurrealDB");

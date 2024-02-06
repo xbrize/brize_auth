@@ -1,4 +1,4 @@
-use crate::config::Expiry;
+use crate::config::{mysql_connection_string, Expiry};
 use crate::domain::entity::Session;
 
 use crate::interface::SessionRepository;
@@ -14,7 +14,8 @@ impl SessionClient<gateway::mysql::MySqlGateway> {
     pub async fn new_mysql_client(
         db_configs: &DatabaseConfig,
     ) -> SessionClient<gateway::mysql::MySqlGateway> {
-        let gateway = gateway::mysql::MySqlGateway::new(db_configs).await;
+        let url = mysql_connection_string(db_configs);
+        let gateway = gateway::mysql::MySqlGateway::new(&url).await;
 
         SessionClient { gateway }
     }
@@ -78,6 +79,7 @@ mod tests {
     use super::*;
     use crate::helpers::{mysql_configs, surreal_configs};
 
+    #[cfg(feature = "mysql")]
     #[tokio::test]
     async fn test_mysql_session() {
         let db_configs = mysql_configs();
@@ -109,6 +111,7 @@ mod tests {
         assert!(is_valid.is_err());
     }
 
+    #[cfg(feature = "surreal")]
     #[tokio::test]
     async fn test_surreal_session() {
         let db_configs = surreal_configs();
