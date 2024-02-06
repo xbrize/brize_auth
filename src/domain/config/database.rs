@@ -8,19 +8,21 @@ pub struct DatabaseConfig {
     pub namespace: Option<String>,
 }
 
-pub fn mysql_connection_string(config: &DatabaseConfig) -> String {
-    match &config.port {
-        Some(port) => {
-            format!(
-                "mysql://{}:{}@{}:{}/{}",
-                config.user_name, config.password, config.host, port, config.db_name
-            )
-        }
-        None => {
-            format!(
-                "mysql://{}:{}@{}/{}",
-                config.user_name, config.password, config.host, config.db_name
-            )
+impl DatabaseConfig {
+    pub fn mysql_connection_string(&self) -> String {
+        match &self.port {
+            Some(port) => {
+                format!(
+                    "mysql://{}:{}@{}:{}/{}",
+                    self.user_name, self.password, self.host, port, self.db_name
+                )
+            }
+            None => {
+                format!(
+                    "mysql://{}:{}@{}/{}",
+                    self.user_name, self.password, self.host, self.db_name
+                )
+            }
         }
     }
 }

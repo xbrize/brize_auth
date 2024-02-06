@@ -75,16 +75,12 @@ impl SessionRepository for MySqlGateway {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        config::{mysql_connection_string, Expiry},
-        helpers::mysql_configs,
-    };
+    use crate::{config::Expiry, helpers::mysql_configs};
 
     #[tokio::test]
     async fn test_mysql_session_repo() {
         let db_config = mysql_configs();
-        let url = mysql_connection_string(&db_config);
-        let repo = MySqlGateway::new(&url).await;
+        let repo = MySqlGateway::new(&db_config.mysql_connection_string()).await;
 
         let session = &Session::new(&Expiry::Day(1), "848hfhs0-88ryh-eohrnf-odsiru");
         let query = repo.insert_session(session).await;

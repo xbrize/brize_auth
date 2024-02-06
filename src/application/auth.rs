@@ -1,4 +1,3 @@
-use crate::config::mysql_connection_string;
 use crate::domain::entity::{Credentials, CredentialsId};
 use crate::{
     application::interface::CredentialsRepository,
@@ -13,11 +12,8 @@ pub struct AuthClient<C: CredentialsRepository> {
 
 #[cfg(feature = "mysql")]
 impl AuthClient<gateway::mysql::MySqlGateway> {
-    pub async fn new_mysql_client(
-        db_configs: &DatabaseConfig,
-    ) -> AuthClient<gateway::mysql::MySqlGateway> {
-        let url = mysql_connection_string(db_configs);
-        let gateway = gateway::mysql::MySqlGateway::new(&url).await;
+    pub async fn new_mysql_client(database_url: &str) -> AuthClient<gateway::mysql::MySqlGateway> {
+        let gateway = gateway::mysql::MySqlGateway::new(database_url).await;
 
         Self { gateway }
     }
@@ -107,7 +103,7 @@ mod tests {
     #[tokio::test]
     async fn test_mysql_auth() {
         let db_configs = mysql_configs();
-        let auth = AuthClient::new_mysql_client(&db_configs).await;
+        let auth = AuthClient::new_mysql_client(&db_configs.mysql_connection_string()).await;
 
         // create random user creds
         let random_str = &uuid::Uuid::new_v4().to_string();

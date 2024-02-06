@@ -131,15 +131,14 @@ impl CredentialsRepository for MySqlGateway {
 
 #[cfg(test)]
 mod tests {
-    use crate::{config::mysql_connection_string, helpers::mysql_configs};
+    use crate::helpers::mysql_configs;
 
     use super::*;
 
     #[tokio::test]
     async fn test_mysql_credentials_repo() {
         let db_config = mysql_configs();
-        let url = mysql_connection_string(&db_config);
-        let repo = MySqlGateway::new(&url).await;
+        let repo = MySqlGateway::new(&db_config.mysql_connection_string()).await;
 
         let password = "test-pass-word";
         let email = "test@email.com";

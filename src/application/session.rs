@@ -1,4 +1,4 @@
-use crate::config::{mysql_connection_string, Expiry};
+use crate::config::Expiry;
 use crate::domain::entity::Session;
 
 use crate::interface::SessionRepository;
@@ -12,10 +12,9 @@ pub struct SessionClient<S: SessionRepository> {
 #[cfg(feature = "mysql")]
 impl SessionClient<gateway::mysql::MySqlGateway> {
     pub async fn new_mysql_client(
-        db_configs: &DatabaseConfig,
+        database_url: &str,
     ) -> SessionClient<gateway::mysql::MySqlGateway> {
-        let url = mysql_connection_string(db_configs);
-        let gateway = gateway::mysql::MySqlGateway::new(&url).await;
+        let gateway = gateway::mysql::MySqlGateway::new(database_url).await;
 
         SessionClient { gateway }
     }
@@ -83,7 +82,7 @@ mod tests {
     #[tokio::test]
     async fn test_mysql_session() {
         let db_configs = mysql_configs();
-        let sesh = SessionClient::new_mysql_client(&db_configs).await;
+        let sesh = SessionClient::new_mysql_client(&db_configs.mysql_connection_string()).await;
         let user_id = &uuid::Uuid::new_v4().to_string();
 
         // Test healthy session
