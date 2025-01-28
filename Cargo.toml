@@ -10,22 +10,17 @@ readme = "README.md"
 keywords = ["auth", "web"]
 categories = ["authentication"]
 
-[features]
-mysql = ["dep:sqlx"]
-surreal = ["dep:surrealdb"]
-sessions = ["dep:base64", "dep:rand"]
 
 [dependencies]
-anyhow = "1.0.75"
-argon2 = "0.5.2"
-async-trait = "0.1.73"
-serde = { version = "1.0.188", features = ["derive"] }
-serde_json = "1.0.107"
-uuid = { version = "1.4.1", features = ["v4", "fast-rng"] }
-surrealdb = {version = "1.0.0", optional = true }
-sqlx = { version = "0.7.2", features = ["runtime-tokio", "mysql", "tls-rustls"], optional = true }
-base64 = {version = "0.21.5", optional = true}
-rand = {version = "0.8.5", optional = true}
+anyhow = "1.0.95"
+argon2 = "0.5.3"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.137"
+uuid = { version = "1.12.1", features = ["v4", "fast-rng"] }
+base64 = {version = "0.22.1"}
+rand = {version = "0.9.0"}
+sqlx = {version="0.8.3", features = ["runtime-tokio", "mysql", "tls-rustls"]}
+trait-variant = "0.1.2"
 
 [dev-dependencies]
-tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }

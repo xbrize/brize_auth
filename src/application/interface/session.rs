@@ -1,8 +1,7 @@
 use crate::domain::entity::{Session, SessionToken};
 use anyhow::Result;
-use async_trait::async_trait;
 
-#[async_trait]
+#[trait_variant::make(HttpService: Send)]
 pub trait SessionRepository: Send + Sync {
     async fn insert_session(&self, session: &Session) -> Result<()>;
 

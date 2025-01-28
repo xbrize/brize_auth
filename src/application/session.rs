@@ -1,31 +1,19 @@
 use crate::config::Expiry;
 use crate::domain::entity::Session;
 
+use crate::infrastructure::gateway;
 use crate::interface::SessionRepository;
-use crate::{config::DatabaseConfig, infrastructure::gateway};
 use anyhow::Result;
 
 pub struct SessionClient<S: SessionRepository> {
     pub gateway: S,
 }
 
-#[cfg(feature = "mysql")]
 impl SessionClient<gateway::mysql::MySqlGateway> {
     pub async fn new_mysql_client(
         database_url: &str,
     ) -> SessionClient<gateway::mysql::MySqlGateway> {
         let gateway = gateway::mysql::MySqlGateway::new(database_url).await;
-
-        SessionClient { gateway }
-    }
-}
-
-#[cfg(feature = "surreal")]
-impl SessionClient<gateway::surreal::SurrealGateway> {
-    pub async fn new_surreal_client(
-        db_configs: &DatabaseConfig,
-    ) -> SessionClient<gateway::surreal::SurrealGateway> {
-        let gateway = gateway::surreal::SurrealGateway::new(db_configs).await;
 
         SessionClient { gateway }
     }
@@ -76,45 +64,12 @@ mod tests {
     use std::{thread::sleep, time::Duration};
 
     use super::*;
-    use crate::helpers::{mysql_configs, surreal_configs};
+    use crate::helpers::mysql_configs;
 
-    #[cfg(feature = "mysql")]
     #[tokio::test]
     async fn test_mysql_session() {
         let db_configs = mysql_configs();
         let sesh = SessionClient::new_mysql_client(&db_configs.mysql_connection_string()).await;
-        let user_id = &uuid::Uuid::new_v4().to_string();
-
-        // Test healthy session
-        let sesh_details = sesh
-            .start_session(user_id, Expiry::Second(20))
-            .await
-            .unwrap();
-
-        let is_valid = sesh
-            .validate_session(sesh_details.session_id.as_str())
-            .await;
-        assert!(is_valid.is_ok());
-
-        // Test expired session
-        let user_id = &uuid::Uuid::new_v4().to_string();
-        let sesh_details = sesh
-            .start_session(user_id, Expiry::Second(1))
-            .await
-            .unwrap();
-
-        sleep(Duration::new(2, 0));
-        let is_valid = sesh
-            .validate_session(sesh_details.session_id.as_str())
-            .await;
-        assert!(is_valid.is_err());
-    }
-
-    #[cfg(feature = "surreal")]
-    #[tokio::test]
-    async fn test_surreal_session() {
-        let db_configs = surreal_configs();
-        let sesh = SessionClient::new_surreal_client(&db_configs).await;
         let user_id = &uuid::Uuid::new_v4().to_string();
 
         // Test healthy session

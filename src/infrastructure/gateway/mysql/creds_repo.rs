@@ -13,7 +13,6 @@ impl FromRow<'_, MySqlRow> for Credentials {
     }
 }
 
-#[async_trait::async_trait]
 impl CredentialsRepository for MySqlGateway {
     async fn insert_credentials(&self, credentials: &Credentials) -> Result<()> {
         sqlx::query(

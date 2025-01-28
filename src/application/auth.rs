@@ -1,30 +1,18 @@
 use crate::domain::entity::{Credentials, CredentialsId};
+use crate::infrastructure::gateway;
 use crate::{
     application::interface::CredentialsRepository,
     infrastructure::services::password_hash::{hash_raw_password, verify_password},
 };
-use crate::{config::DatabaseConfig, infrastructure::gateway};
 use anyhow::{Context, Result};
 
 pub struct AuthClient<C: CredentialsRepository> {
     pub gateway: C,
 }
 
-#[cfg(feature = "mysql")]
 impl AuthClient<gateway::mysql::MySqlGateway> {
     pub async fn new_mysql_client(database_url: &str) -> AuthClient<gateway::mysql::MySqlGateway> {
         let gateway = gateway::mysql::MySqlGateway::new(database_url).await;
-
-        Self { gateway }
-    }
-}
-
-#[cfg(feature = "surreal")]
-impl AuthClient<gateway::surreal::SurrealGateway> {
-    pub async fn new_surreal_client(
-        db_configs: &DatabaseConfig,
-    ) -> AuthClient<gateway::surreal::SurrealGateway> {
-        let gateway = gateway::surreal::SurrealGateway::new(db_configs).await;
 
         Self { gateway }
     }
@@ -96,31 +84,11 @@ impl<C: CredentialsRepository> AuthClient<C> {
 mod tests {
     use super::*;
     use crate::helpers::mysql_configs;
-    #[cfg(feature = "surreal")]
-    use crate::helpers::surreal_configs;
 
-    #[cfg(feature = "mysql")]
     #[tokio::test]
     async fn test_mysql_auth() {
         let db_configs = mysql_configs();
         let auth = AuthClient::new_mysql_client(&db_configs.mysql_connection_string()).await;
-
-        // create random user creds
-        let random_str = &uuid::Uuid::new_v4().to_string();
-        let email = &random_str[..10];
-        let password = "secret-test-password";
-        let creds_id = auth.register(email, password).await.unwrap();
-        assert_eq!(creds_id.len(), 36);
-
-        // login attempt
-        auth.verify_credentials(email, password).await.unwrap();
-    }
-
-    #[cfg(feature = "surreal")]
-    #[tokio::test]
-    async fn test_surreal_auth() {
-        let db_configs = surreal_configs();
-        let auth = AuthClient::new_surreal_client(&db_configs).await;
 
         // create random user creds
         let random_str = &uuid::Uuid::new_v4().to_string();

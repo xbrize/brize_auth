@@ -28,8 +28,3 @@ test-mysql:
     ./scripts/init_db.sh
     cargo test mysql
     ./scripts/stop_db.sh
-
-test-surreal:
-    ./scripts/init_db.sh
-    cargo test surreal
-    ./scripts/stop_db.sh

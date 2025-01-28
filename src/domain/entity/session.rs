@@ -1,6 +1,6 @@
 use crate::domain::config::Expiry;
 use base64::{engine::general_purpose, Engine};
-use rand::distributions::Alphanumeric;
+use rand::distr::Alphanumeric;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +38,7 @@ impl Session {
 
 fn generate_csrf_token() -> CsrfToken {
     // Generate a random alphanumeric string of length 32
-    let random_string: String = rand::thread_rng()
+    let random_string: String = rand::rng()
         .sample_iter(&Alphanumeric)
         .take(32)
         .map(char::from)

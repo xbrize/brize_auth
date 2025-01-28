@@ -44,7 +44,7 @@ CREATE TABLE user_sessions (
 
 ## Usage
 
-#### MySql feature
+### MySql feature
 
 ```rust
 use anyhow::{Context, Result};
@@ -162,11 +162,12 @@ enum Expiry {
 - [ ] Live testing
   - [x] Secure production db testing
   - [ ] Benchmarking
-- [ ] Code Review
 
 ### Beta features
 
 - [x] Add feature splitting
 - [x] add a port to config
+- [ ] Add PostgresSQL support
+- [ ] Add Sqlite support
 - [ ] Configure custom table names for credentials and sessions
 - [ ] Add refresh config for Session and Csrf tokens

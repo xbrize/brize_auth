@@ -1,11 +1,5 @@
-#[cfg(feature = "sessions")]
-mod session_repo;
-#[cfg(feature = "sessions")]
-pub use session_repo::*;
-
 mod creds_repo;
-pub use creds_repo::*;
-
+mod session_repo;
 use sqlx::mysql::MySqlPool;
 
 pub struct MySqlGateway {

@@ -19,7 +19,6 @@ impl FromRow<'_, MySqlRow> for Session {
     }
 }
 
-#[async_trait::async_trait]
 impl SessionRepository for MySqlGateway {
     async fn insert_session(&self, session: &Session) -> Result<()> {
         sqlx::query(
