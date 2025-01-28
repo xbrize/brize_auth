@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.12.0] - 2025-01-28
+
+### Bug Fixes
+
+- Pass url string to sql clients
+
+### Features
+
+- Add clone trait to Session
+- Make the port optional for configs
+
+### Miscellaneous Tasks
+
+- Update readme
+- Update app version
+- Update changelog
+- Update changelog
+
+### Breaking
+
+- Remove support for surreal db
+
 ## [0.11.1] - 2024-02-06
 
 ### Bug Fixes
