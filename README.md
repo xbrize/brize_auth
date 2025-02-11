@@ -4,7 +4,7 @@ A tiny async authentication library.
 
 ## Summary
 
-A tool for simplifying authentication in the Rust ecosystems. Purposefully built to be agnostic of your specific business/schema logic for managing users. Primarily controls the user **credentials** and optionally managing **sessions**. Built asynchronously with the Tokio runtime, and supports MySql and SurrealDB.
+A tool for simplifying authentication in the Rust ecosystems. Purposefully built to be agnostic of your specific business/schema logic for managing users. Primarily controls the user **credentials** and optionally managing **sessions**. Built asynchronously with the Tokio runtime, and supports MySql.
 
 ## Credentials
 
@@ -19,7 +19,7 @@ The sessions are optional, in case you want to use some other session solution. 
 First install the crate
 
 ```bash
-cargo add brize_auth --features "mysql,sessions"
+cargo add brize_auth
 ```
 
 Next, set up the database tables with this schema, if using a SQL database
@@ -44,7 +44,7 @@ CREATE TABLE user_sessions (
 
 ## Usage
 
-### MySql feature
+### MySql
 
 ```rust
 use anyhow::{Context, Result};
@@ -121,53 +121,3 @@ enum Expiry {
     Year(u64), // Years in EPOCH
 }
 ```
-
-## Supported Databases
-
-- MySql (credentials + sessions)
-- SurrealDB (credentials + sessions)
-
-## Roadmap
-
-### Prototype phase
-
-- [x] User Registration
-  - [x] Create user credentials if none exist
-  - [x] Deny if user credentials does exist
-  - [x] Return credentials foreign key
-- [x] Login
-  - [x] Match user credentials
-  - [x] Return session token if matched (if sessions enabled)
-  - [x] Deny user if no match
-  - [x] Hash password
-- [x] Session Management
-  - [x] Create session
-  - [x] Validate session
-  - [x] Delete sessions based on age and logout
-- [x] Logout
-  - [x] Delete users session
-- [x] Change Credentials
-  - [x] Update user_identity
-  - [x] Update user_password
-- [x] Delete User
-  - [x] Remove credentials and session from database
-
-### Alpha testing phase
-
-- [x] Code refactoring
-  - [x] Domain module
-  - [x] Application module
-  - [x] Infrastructure module
-  - [x] Library
-- [ ] Live testing
-  - [x] Secure production db testing
-  - [ ] Benchmarking
-
-### Beta features
-
-- [x] Add feature splitting
-- [x] add a port to config
-- [ ] Add PostgresSQL support
-- [ ] Add Sqlite support
-- [ ] Configure custom table names for credentials and sessions
-- [ ] Add refresh config for Session and Csrf tokens
